@@ -100,3 +100,12 @@ jobs:
           prerelease: false
           includeUpdaterJson: ${{ steps.sign.outputs.enabled == 'true' }}
           args: ${{ matrix.args }} ${{ steps.sign.outputs.extra }}
+
+  # Depois dos instaladores: atualiza o repositório DNF (Fedora) no GitHub Pages.
+  dnf:
+    needs: release
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/dnf.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets: inherit

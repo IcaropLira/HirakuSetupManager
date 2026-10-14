@@ -232,6 +232,11 @@ modo `--user` e trata arquivo seu já existente como conflito pendente. Pacotes 
 3. `git tag v0.1.0 && git push origin v0.1.0`: o `release.yml` gera os instaladores e o
    `latest.json` do atualizador.
 
+4. Repositório DNF: depois do primeiro `dnf.yml` (roda no fim de cada release, ou
+   `gh workflow run dnf.yml -f tag=v0.1.0`), ative o GitHub Pages em Settings → Pages →
+   Deploy from a branch → `gh-pages` / root. O `scripts/publish-dnf.sh` assina os .rpm e o
+   `repomd.xml` com a chave GPG do secret `RPM_GPG_PRIVATE_KEY` e mantém as últimas 5 versões.
+
 Daí em diante: o `registry.yml` roda toda segunda (e a cada push em `registry/`), e cada tag
 `v*` vira uma atualização do app. O app só aceita registry assinado por uma chave de
 `keys/registry.pub` (embutida no binário); a URL padrão é a release `registry` deste repo

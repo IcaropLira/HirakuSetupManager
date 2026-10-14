@@ -10,8 +10,10 @@
 # 2. App: cadastra a chave do atualizador do Tauri. Por padrão reusa a do Hiraku
 #    Comics Manager (a pública dela já está no tauri.conf.json). Com --new-app-key
 #    gera uma nova e troca a pública no tauri.conf.json.
+# 3. DNF: gera uma chave GPG (fica em ~/.config/hiraku-signing/gnupg) que assina
+#    os .rpm e o repositório Fedora; vai para o secret RPM_GPG_PRIVATE_KEY.
 #
-# Uso: scripts/setup-signing.sh [--app-key ARQUIVO] [--new-app-key] [--skip-registry]
+# Uso: scripts/setup-signing.sh [--app-key ARQUIVO] [--new-app-key] [--skip-registry] [--skip-rpm]
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -19,12 +21,14 @@ DIR="$HOME/.config/hiraku-signing"
 APP_KEY=""
 NEW_APP_KEY=0
 SKIP_REGISTRY=0
+SKIP_RPM=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --app-key) APP_KEY="$2"; shift 2 ;;
     --new-app-key) NEW_APP_KEY=1; shift ;;
     --skip-registry) SKIP_REGISTRY=1; shift ;;
-    -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+    --skip-rpm) SKIP_RPM=1; shift ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "opção desconhecida: $1" >&2; exit 1 ;;
   esac
 done
@@ -86,6 +90,20 @@ else
   echo "app: nenhuma chave informada; pulei. Rode de novo com --app-key ARQUIVO ou --new-app-key."
 fi
 
+# ---------------------------------------------------------------- dnf (GPG)
+if [ "$SKIP_RPM" = 0 ]; then
+  need gpg "dnf/apt/brew install gnupg"
+  export GNUPGHOME="$DIR/gnupg"
+  mkdir -p "$GNUPGHOME"; chmod 700 "$GNUPGHOME"
+  if ! gpg --batch --list-secret-keys --with-colons 2>/dev/null | grep -q '^sec'; then
+    EMAIL=$(git config user.email || echo "hiraku@localhost")
+    gpg --batch --quiet --passphrase '' --quick-gen-key "Hiraku Setup Manager <$EMAIL>" rsa4096 sign never
+  fi
+  gpg --batch --armor --export-secret-keys | gh secret set RPM_GPG_PRIVATE_KEY -R "$REPO"
+  echo "dnf: secret RPM_GPG_PRIVATE_KEY cadastrado (chave em $GNUPGHOME; guarde um backup)"
+  unset GNUPGHOME
+fi
+
 # ---------------------------------------------------------------- commit
 if [ -n "$(git status --porcelain keys/registry.pub crates/hiraku-gui/tauri.conf.json)" ]; then
   git add keys/registry.pub crates/hiraku-gui/tauri.conf.json
@@ -94,5 +112,5 @@ if [ -n "$(git status --porcelain keys/registry.pub crates/hiraku-gui/tauri.conf
   echo "Commit criado. Agora:"
   echo "  git push"
   echo "  gh workflow run registry.yml        # publica o registry assinado"
-  echo "  git tag v0.1.0 && git push origin v0.1.0   # primeira release do app"
+  echo "  git tag v0.1.1 && git push origin v0.1.1   # release assinada (app + dnf)"
 fi
