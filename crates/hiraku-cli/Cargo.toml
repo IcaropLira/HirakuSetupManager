@@ -1,0 +1,18 @@
+[package]
+name = "hiraku-cli"
+description = "Binário `hiraku` (CLI + TUI); também é biblioteca para o app desktop rodar os mesmos comandos"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "hiraku"
+path = "src/main.rs"
+
+[dependencies]
+hiraku-core = { path = "../hiraku-core" }
+hiraku-tui = { path = "../hiraku-tui" }

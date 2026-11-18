@@ -1,0 +1,38 @@
+schema = 1
+id = "fzf"
+name = "fzf"
+description = "Busca fuzzy interativa"
+platforms = ["linux", "macos", "windows"]
+
+[[install]]
+when = { os = "linux", arch = "x86_64" }
+provides = ["fzf"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/junegunn/fzf/releases/download/v{version}/fzf-{version}-linux_amd64.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/fzf"
+bins = [{ src = "fzf", link = "~/.local/bin/fzf" }]
+bump = { github = "junegunn/fzf" }
+
+[[install]]
+when = { os = "linux", arch = "aarch64" }
+provides = ["fzf"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/junegunn/fzf/releases/download/v{version}/fzf-{version}-linux_arm64.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/fzf"
+bins = [{ src = "fzf", link = "~/.local/bin/fzf" }]
+bump = { github = "junegunn/fzf" }
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "fzf" }
+provides = ["fzf"]
+
+[[install]]
+when = { os = "windows" }
+method = "pkg"
+names = { scoop = "fzf" }

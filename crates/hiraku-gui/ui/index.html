@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hiraku Setup Manager</title>
+<link rel="stylesheet" href="app.css">
+</head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<linearGradient id="lgA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--acc)"/><stop offset=".55" style="stop-color:color-mix(in srgb,var(--acc) 55%,#fff)"/><stop offset="1" style="stop-color:color-mix(in srgb,var(--acc) 45%,#2a1b5c)"/></linearGradient>
+<linearGradient id="lgR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--acc)"/><stop offset="1" style="stop-color:var(--acc2)"/></linearGradient>
+</defs></svg>
+
+<div class="app">
+<header class="topbar">
+  <div class="menubar" role="menubar" aria-label="Menu">
+    <div class="nvg mb"><button class="nvt">Arquivo</button><div class="nvm" data-m="file"></div></div>
+    <div class="nvg mb"><button class="nvt">Editar</button><div class="nvm" data-m="edit"></div></div>
+    <div class="nvg mb"><button class="nvt">Exibir</button><div class="nvm" data-m="view"></div></div>
+    <div class="nvg mb"><button class="nvt">Ir</button><div class="nvm" data-m="go"></div></div>
+    <div class="nvg mb"><button class="nvt">Ajuda</button><div class="nvm" data-m="help"></div></div>
+  </div>
+  <div class="brand">
+    <button class="brand-mark" data-v="home" title="Início" aria-label="Ir para o Início"></button>
+    <div class="brand-txt"><h1>Hiraku Setup</h1><small class="badge" id="envbadge">carregando…</small></div>
+  </div>
+  <nav aria-label="Principal">
+    <button data-v="home">⌂ Início</button>
+    <button data-v="modules">Módulos</button>
+    <button data-v="custom" class="nv-accent">✦ Personalizar</button>
+    <button data-v="conflicts">Conflitos <span class="cnt" id="nconf" hidden></span></button>
+    <button data-v="updates">Atualizações</button>
+  </nav>
+  <div class="tools">
+    <button class="ib" id="btn-sync" title="Sincronizar tudo (Ctrl+S)" aria-label="Sincronizar tudo"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg></button>
+    <button class="ib" id="btn-theme" title="Alternar claro/escuro" aria-label="Alternar claro/escuro"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
+    <button class="ib" id="btn-settings" title="Configurações (Ctrl+,)" aria-label="Configurações"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+</header>
+<main id="view" tabindex="-1"></main>
+<footer class="app-footer">Criado por Ícaro Pinto Lira · <span id="appver"></span> <a href="#" id="chkup">Verificar atualizações</a></footer>
+</div>
+
+<div id="dock" hidden></div>
+<div id="toasts" aria-live="polite"></div>
+<div id="overlay" hidden></div>
+
+<script src="app.js"></script>
+</body></html>

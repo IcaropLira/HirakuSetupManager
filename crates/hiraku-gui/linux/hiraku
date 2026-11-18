@@ -1,0 +1,4 @@
+#!/bin/sh
+# `hiraku` no terminal: o mesmo binário do app. Sem argumentos abre a TUI.
+[ $# -eq 0 ] && set -- tui
+exec /usr/bin/hiraku-setup-manager "$@"

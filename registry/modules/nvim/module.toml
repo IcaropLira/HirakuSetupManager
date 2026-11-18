@@ -1,0 +1,62 @@
+schema = 1
+id = "nvim"
+name = "Neovim"
+description = "Neovim com lazy.nvim, LSP, temas do Ícaro e autocomplete"
+platforms = ["linux", "macos", "windows"]
+requires = ["icaro-themes", "font-jetbrains-mono"]
+
+# Linux: build oficial do Neovim em ~/.local (as distros ficam para trás), com ou sem root.
+[[install]]
+when = { os = "linux", arch = "x86_64" }
+method = "release"
+version = "0.0.0"
+url = "https://github.com/neovim/neovim/releases/download/v{version}/nvim-linux-x86_64.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/nvim"
+strip_components = 1
+bins = [{ src = "bin/nvim", link = "~/.local/bin/nvim" }]
+bump = { github = "neovim/neovim" }
+
+[[install]]
+when = { os = "linux", arch = "aarch64" }
+method = "release"
+version = "0.0.0"
+url = "https://github.com/neovim/neovim/releases/download/v{version}/nvim-linux-arm64.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/nvim"
+strip_components = 1
+bins = [{ src = "bin/nvim", link = "~/.local/bin/nvim" }]
+bump = { github = "neovim/neovim" }
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "neovim" }
+
+[[install]]
+when = { os = "windows" }
+method = "pkg"
+names = { scoop = "neovim" }
+
+[[config]]
+src = "files/config"
+dest = { unix = "~/.config/nvim" }
+
+# lazy-lock.json é reescrito pelo lazy.nvim a cada :Lazy sync: é estado do usuário, criado uma vez.
+[[config]]
+src = "files/seed/lazy-lock.json"
+dest = { unix = "~/.config/nvim/lazy-lock.json" }
+mode = "seed"
+
+# Instala os plugins na primeira vez e sempre que a config ou o nvim mudarem.
+[[hook]]
+name = "bootstrap"
+when = { os = "linux" }
+script = "hooks/bootstrap.sh"
+optional = true
+
+[[hook]]
+name = "bootstrap-macos"
+when = { os = "macos" }
+script = "hooks/bootstrap.sh"
+optional = true

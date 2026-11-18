@@ -1,0 +1,40 @@
+schema = 1
+id = "node"
+name = "Node.js (LTS)"
+description = "Runtime exigido pelo coc.nvim e por servidores de linguagem do nvim"
+platforms = ["linux", "macos", "windows"]
+
+# Linux: sempre o build oficial LTS em ~/.local, com ou sem root. O Node das distros (ex.: Ubuntu/Mint) costuma ser
+# velho demais para o coc.nvim, e ~/.local/bin vem primeiro no PATH (bloco do módulo `shell`).
+[[install]]
+when = { os = "linux", arch = "x86_64" }
+method = "release"
+version = "0.0.0"
+url = "https://nodejs.org/dist/v{version}/node-v{version}-linux-x64.tar.xz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/node"
+strip_components = 1
+bins = [{ src = "bin/node", link = "~/.local/bin/node" }, { src = "bin/npm", link = "~/.local/bin/npm" }, { src = "bin/npx", link = "~/.local/bin/npx" }]
+bump = { index_url = "https://nodejs.org/dist/latest-lts/", index_prefix = "node-v", index_suffix = "-linux-x64.tar.xz" }
+
+[[install]]
+when = { os = "linux", arch = "aarch64" }
+method = "release"
+version = "0.0.0"
+url = "https://nodejs.org/dist/v{version}/node-v{version}-linux-arm64.tar.xz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/node"
+strip_components = 1
+bins = [{ src = "bin/node", link = "~/.local/bin/node" }, { src = "bin/npm", link = "~/.local/bin/npm" }, { src = "bin/npx", link = "~/.local/bin/npx" }]
+bump = { index_url = "https://nodejs.org/dist/latest-lts/", index_prefix = "node-v", index_suffix = "-linux-arm64.tar.xz" }
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "node" }
+provides = ["node"]
+
+[[install]]
+when = { os = "windows" }
+method = "pkg"
+names = { scoop = "nodejs-lts" }

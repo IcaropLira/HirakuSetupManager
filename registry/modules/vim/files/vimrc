@@ -1,0 +1,269 @@
+set encoding=utf-8
+scriptencoding utf-8
+set fileencodings=utf-8
+set nocompatible
+filetype plugin indent on
+syntax enable
+" Cores: por padrão, ASSUME truecolor. A grande maioria dos terminais
+" usados hoje (inclusive o terminal "padrão" da maioria das
+" distros/labs) suporta 24-bit, mesmo sem anunciar isso via
+" $COLORTERM ou $VTE_VERSION — foi exatamente essa checagem restritiva
+" demais que deixava a aparência "feia" (cores erradas/achatadas) fora
+" do kitty: o terminal do laboratório suporta truecolor, só não avisa
+" que suporta. Só desligamos quando há um sinal CLARO de que não dá:
+" o console de texto puro do Linux (TERM=linux, sem X/Wayland
+" nenhum), TERM=dumb, ou se a pessoa forçar na mão com
+" $ICARO_TRUECOLOR=0 (por exemplo, numa sessão SSH antiga que
+" realmente não aguenta).
+if $TERM ==# 'linux' || $TERM ==# 'dumb' || $ICARO_TRUECOLOR ==# '0'
+    set notermguicolors
+else
+    set termguicolors
+endif
+if exists('+ttyfast')
+    set ttyfast
+endif
+set ttimeout
+set ttimeoutlen=750
+set background=dark
+
+" ============================================================
+" Vim Codeforces / Java IDE — Configuração Ícaro Lira
+" ============================================================
+
+" ------------------------------------------------------------
+" Preferências locais (nerd font sim/não, etc). Esse arquivo NÃO faz
+" parte do pacote em si — o install.sh cria/pergunta uma vez só, e
+" nunca sobrescreve depois, pra guardar sua escolha.
+" ------------------------------------------------------------
+if filereadable(expand('~/.vim/config/local.vim'))
+    source ~/.vim/config/local.vim
+endif
+let g:icaro_use_nerd_font = get(g:, 'icaro_use_nerd_font', 0)
+" Powerline pode ser usado independentemente dos ícones da Nerd Font.
+" O padrão é 1 para manter winbar/statusline com os separadores reais.
+let g:icaro_powerline = get(g:, 'icaro_powerline', 1)
+
+" ------------------------------------------------------------
+" Persistência dos toggles (autocomplete / dicas de parâmetro).
+"
+" O autocomplete (F4, veja config/coc.vim) é individual POR
+" LINGUAGEM: C++, Java e Python guardam cada um o seu próprio
+" liga/desliga, sem depender um do outro. Por exemplo, dá pra deixar
+" ligado em Java e Python e desligado em C++ ao mesmo tempo — e essa
+" escolha é por linguagem, não pela última tecla apertada.
+"
+" Tudo fica gravado num arquivinho de texto (uma linha por
+" linguagem, tipo "cpp 1") em ~/.vim/; aqui a gente lê ele de volta
+" ANTES de qualquer plugin carregar — é o que garante que "C++
+" desligado" continua desligado depois de fechar e abrir o vim de
+" novo, sem mudar o estado de Java/Python.
+" ------------------------------------------------------------
+let g:icaro_ac_state_file    = expand('~/.vim/.icaro_autocomplete_state')
+let g:icaro_inlay_state_file = expand('~/.vim/.icaro_inlayhints_state')
+let g:icaro_pairs_state_file = expand('~/.vim/.icaro_pairs_state')
+let g:icaro_header_state_file = expand('~/.vim/.icaro_header_state')
+let g:icaro_matchparen_state_file = expand('~/.vim/.icaro_matchparen_state')
+
+" Linguagens com toggle individual de autocomplete. Pra adicionar uma
+" nova linguagem no futuro, basta incluir o filetype dela aqui (e ter
+" um language server pra ela configurado em config/coc.vim).
+let g:icaro_ac_languages = ['cpp', 'java', 'python']
+
+function! s:ReadAutocompleteState(file, languages) abort
+    " Padrão de fábrica: toda linguagem começa LIGADA, a não ser que
+    " o arquivo diga o contrário pra alguma delas especificamente.
+    let l:state = {}
+    for l:lang in a:languages
+        let l:state[l:lang] = 1
+    endfor
+
+    if filereadable(a:file)
+        for l:line in readfile(a:file)
+            let l:parts = split(l:line)
+            if len(l:parts) == 2 && index(a:languages, l:parts[0]) >= 0
+                let l:state[l:parts[0]] = (l:parts[1] ==# '0') ? 0 : 1
+            endif
+        endfor
+    endif
+
+    return l:state
+endfunction
+
+" Lê um arquivo de 1 linha ('0' ou '1') e devolve esse valor; se o
+" arquivo não existir ainda, devolve o padrão. Usado por todo toggle
+" simples (não-por-linguagem): IH, PA e o header (winbar).
+function! s:ReadFlag(file, default) abort
+    if filereadable(a:file)
+        let l:lines = readfile(a:file)
+        if !empty(l:lines)
+            return l:lines[0] ==# '1' ? 1 : 0
+        endif
+    endif
+    return a:default
+endfunction
+
+" g:icaro_ac_state = {'cpp': 1, 'java': 0, 'python': 1, ...} — cada F4
+" só mexe na entrada do filetype do buffer atual (veja config/coc.vim).
+let g:icaro_ac_state         = s:ReadAutocompleteState(g:icaro_ac_state_file, g:icaro_ac_languages)
+let g:my_inlay_hints_enabled = s:ReadFlag(g:icaro_inlay_state_file, 1)
+let g:icaro_pairs_enabled    = s:ReadFlag(g:icaro_pairs_state_file, 1)
+" Header (winbar) começa VISÍVEL por padrão (0 = não oculto), a não
+" ser que a última escolha salva com Shift+F12 tenha sido esconder.
+let g:icaro_header_hidden    = s:ReadFlag(g:icaro_header_state_file, 0)
+" Highlight de parênteses/colchetes/chaves correspondentes (:h
+" matchparen) — Shift+F10, veja config/appearance.vim
+let g:icaro_matchparen_enabled = s:ReadFlag(g:icaro_matchparen_state_file, 1)
+
+" O coc.nvim continua iniciando normalmente sempre: como o toggle
+" agora é por linguagem (e não um interruptor único), quem decide se
+" o popup de sugestão aparece ou não em cada buffer é o
+" b:coc_suggest_disable aplicado em config/coc.vim, não o processo
+" do coc como um todo.
+
+" O vim-airline lê estas variáveis assim que ele mesmo inicializa
+" (antes do resto da nossa config ser carregada). Se a gente só
+" definir isso depois (em config/appearance.vim), o airline já vai
+" ter montado a statusline com os padrões dele, e simplesmente
+" sobrescrever a variável global depois não força ele a redesenhar —
+" por isso essas funções e as seções customizadas ficam aqui, bem no
+" topo, antes de qualquer 'packadd'.
+function! AutocompleteStatus() abort
+    let l:ft = &filetype
+    if index(g:icaro_ac_languages, l:ft) >= 0
+        return get(g:icaro_ac_state, l:ft, 1) ? '[AC:ON]' : '[AC:OFF]'
+    endif
+    " Filetype sem toggle individual (não é cpp/java/python) — mostra
+    " um indicador neutro, já que aqui o F4 não se aplica.
+    return '[AC:--]'
+endfunction
+
+function! InlayHintStatus() abort
+    return get(g:, 'my_inlay_hints_enabled', 1) ? '[IH:ON]' : '[IH:OFF]'
+endfunction
+
+" PA = Pareamento Automático: fecha sozinho aspas/parênteses/colchetes/
+" `<>` ao digitar o caractere de abertura, e mostra o popup de "ajuda
+" de assinatura" (parâmetros da função) ao digitar "(" — dois
+" comportamentos que vêm da extensão coc-pairs e do coc.nvim (não do
+" autocomplete/coc_suggest em si, por isso F4 não desligava isso).
+" F10 liga/desliga os dois juntos — veja config/coc.vim.
+function! AutoPairsStatus() abort
+    return get(g:, 'icaro_pairs_enabled', 1) ? '[PA:ON]' : '[PA:OFF]'
+endfunction
+
+" O créditozinho é escrito por extenso a partir de códigos de
+" caractere de propósito (em vez de string literal), e reaplicado
+" sozinho se alguém apagar a linha da statusline/winbar — veja
+" config/credit.vim. Isso é só um capricho pessoal, não uma trava de
+" verdade; qualquer um com paciência consegue tirar editando os dois
+" arquivos certos, mas não é algo que sai só apertando um "delete".
+if filereadable(expand('~/.vim/config/credit.vim'))
+    source ~/.vim/config/credit.vim
+endif
+if !exists('*CreditFooter')
+    function! CreditFooter() abort
+        return 'Config: Ícaro Lira'
+    endfunction
+endif
+
+let g:airline_section_a = '%{IcaroModeLabel()}'
+let g:airline_section_b = '%{IcaroGitBranch()}'
+let g:airline_section_c = '%{IcaroThemeBadge()} › %f%m'
+let g:airline_section_y = '%{AutocompleteStatus()} %{InlayHintStatus()} %{AutoPairsStatus()}'
+let g:airline_section_z = '%l:%v %3p%% ‹ %{IcaroClock()} ‹ %{CreditFooter()}'
+
+" Editor
+set number
+set relativenumber
+set mouse=a
+set clipboard=unnamedplus
+set hidden
+set autoindent
+set smartindent
+set expandtab
+set tabstop=4
+set shiftwidth=4
+set softtabstop=4
+set ignorecase
+set smartcase
+set incsearch
+set hlsearch
+set wildmenu
+set wildmode=longest:full,full
+set cursorline
+set scrolloff=5
+set sidescrolloff=5
+set signcolumn=yes
+set updatetime=250
+set timeoutlen=700
+set history=1000
+set nobackup
+set noswapfile
+set nowritebackup
+set laststatus=2
+set nolist
+set splitbelow
+set splitright
+
+" ------------------------------------------------------------
+" Plugins (pacotes nativos do Vim, carregados em ordem controlada)
+" Cada 'packadd!' carrega o que foi clonado/copiado pelo install.sh em
+" ~/.vim/pack/plugins/opt/<nome>. Se um plugin não estiver
+" instalado, o packadd falha silenciosamente e o resto funciona.
+" ------------------------------------------------------------
+silent! packadd! icaro-theme
+silent! packadd! vim-airline
+silent! packadd! vim-airline-themes
+silent! packadd! vim-fugitive
+silent! packadd! nerdtree
+silent! packadd! nerdtree-git-plugin
+
+" vim-devicons (ícones por tipo de arquivo) só é carregado se você
+" confirmou ter uma Nerd Font instalada (pergunta feita pelo
+" install.sh, guardada em config/local.vim). Sem isso, os ícones
+" aparecem como caixinhas/losangos — pior do que não ter ícone
+" nenhum. Sem uma Nerd Font, a interface usa símbolos Unicode comuns,
+" que praticamente qualquer fonte monoespaçada já sabe desenhar.
+if g:icaro_use_nerd_font
+    silent! packadd! vim-devicons
+    let g:webdevicons_enable = 1
+    let g:airline_powerline_fonts = 1
+else
+    let g:webdevicons_enable = 0
+    let g:airline_powerline_fonts = 0
+endif
+
+" Powerline da barra inferior é independente dos ícones da Nerd Font.
+" A fonte é instalada pelo install.sh; aqui só ligamos os glifos.
+if get(g:, 'icaro_powerline', 1)
+    let g:airline_powerline_fonts = 1
+    let g:airline_left_sep = ''
+    let g:airline_right_sep = ''
+    let g:airline_left_alt_sep = ''
+    let g:airline_right_alt_sep = ''
+endif
+
+silent! packadd! coc.nvim
+
+" A limpeza/restauração do terminal é feita pelo wrapper instalado em
+" ~/.local/bin/vim depois que o processo do Vim realmente termina.
+" Fazer OSC de reset durante VimLeavePre era justamente uma fonte de
+" comportamento estranho em alguns terminais do laboratorio.
+" Tema: quem decide qual está ativo (e aplica o salvo da última vez)
+" é o config/themes.vim, carregado logo abaixo — o tema "Malvadão" é
+" só o primeiro da lista/padrão de fábrica.
+source ~/.vim/config/themes.vim
+
+" Configuração modular
+source ~/.vim/config/appearance.vim
+source ~/.vim/config/explorer.vim
+source ~/.vim/config/search.vim
+source ~/.vim/config/coc.vim
+source ~/.vim/config/runner.vim
+source ~/.vim/config/cpp.vim
+source ~/.vim/config/java.vim
+source ~/.vim/config/python.vim
+source ~/.vim/config/cheatsheet.vim
+source ~/.vim/config/functionkeys.vim
+source ~/.vim/config/keymaps.vim

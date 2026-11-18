@@ -1,0 +1,86 @@
+# Gera os instaladores do Hiraku Setup Manager e o `latest.json` do atualizador
+# a cada tag `v*` (mesmo esquema do Hiraku Comics Manager). Os apps instalados
+# acham o `latest.json` da release "latest" e se atualizam sozinhos.
+#
+#   git tag v0.2.0 && git push origin v0.2.0
+#
+# Secrets (scripts/setup-signing.sh cadastra): TAURI_SIGNING_PRIVATE_KEY e,
+# se a chave tiver senha, TAURI_SIGNING_PRIVATE_KEY_PASSWORD. A chave pública
+# correspondente está em crates/hiraku-gui/tauri.conf.json.
+name: Build and release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            args: --bundles deb,rpm,appimage
+          - platform: macos-latest
+            args: --bundles dmg
+          - platform: windows-latest
+            args: --bundles msi,nsis
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Sync versions with the release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const version = process.env.RELEASE_TAG.replace(/^v/, '');
+          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) throw new Error(`tag inválida: ${process.env.RELEASE_TAG}`);
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.version = version;
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          const confPath = 'crates/hiraku-gui/tauri.conf.json';
+          const conf = JSON.parse(fs.readFileSync(confPath, 'utf8'));
+          conf.version = version;
+          fs.writeFileSync(confPath, JSON.stringify(conf, null, 2) + '\n');
+          const cargo = fs.readFileSync('Cargo.toml', 'utf8');
+          const updated = cargo.replace(/(\[workspace\.package\][\s\S]*?\nversion\s*=\s*)"[^"]+"/, `$1"${version}"`);
+          if (updated === cargo) throw new Error('não achei a versão do workspace no Cargo.toml');
+          fs.writeFileSync('Cargo.toml', updated);
+          NODE
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl file libssl-dev \
+            libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev
+      - name: Tests
+        run: cargo test --workspace --exclude hiraku-gui
+      - run: npm install
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Hiraku Setup Manager ${{ github.ref_name }}
+          releaseBody: |
+            Baixe o instalador do seu sistema abaixo. Quem já tem o app instalado recebe esta versão sozinho.
+            - Linux: `.deb` (Ubuntu/Debian), `.rpm` (Fedora) ou `.AppImage`
+            - macOS: `.dmg`
+            - Windows: `.msi` ou `-setup.exe`
+          releaseDraft: false
+          prerelease: false
+          uploadUpdaterJson: true
+          args: ${{ matrix.args }}

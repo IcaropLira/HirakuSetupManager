@@ -1,0 +1,42 @@
+schema = 1
+id = "starship"
+name = "starship"
+description = "Prompt rápido e configurável"
+platforms = ["linux", "macos", "windows"]
+
+[[install]]
+when = { os = "linux", arch = "x86_64" }
+provides = ["starship"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/starship/starship/releases/download/v{version}/starship-x86_64-unknown-linux-musl.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/starship"
+bins = [{ src = "starship", link = "~/.local/bin/starship" }]
+bump = { github = "starship/starship" }
+
+[[install]]
+when = { os = "linux", arch = "aarch64" }
+provides = ["starship"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/starship/starship/releases/download/v{version}/starship-aarch64-unknown-linux-musl.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/starship"
+bins = [{ src = "starship", link = "~/.local/bin/starship" }]
+bump = { github = "starship/starship" }
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "starship" }
+provides = ["starship"]
+
+[[install]]
+when = { os = "windows" }
+method = "pkg"
+names = { scoop = "starship" }
+
+[[config]]
+src = "files/starship.toml"
+dest = { unix = "~/.config/starship.toml" }

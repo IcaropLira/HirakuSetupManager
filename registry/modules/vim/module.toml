@@ -1,0 +1,119 @@
+schema = 1
+id = "vim"
+name = "Vim"
+description = "Vim com tema, plugins (airline, nerdtree, fugitive, coc...) e wrapper que restaura o terminal"
+platforms = ["linux", "macos"]
+requires = ["icaro-themes", "font-jetbrains-mono"]
+
+# O Vim em si só é instalado com root (o seu install.sh também exigia um Vim já instalado).
+# Sem root, o módulo ainda configura e instala os plugins sobre o Vim que existir na máquina.
+[[install]]
+when = { os = "linux", root = true }
+method = "pkg"
+names = { dnf = "vim-enhanced", apt = "vim", pacman = "vim", zypper = "vim" }
+provides = ["vim"]
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "vim" }
+provides = ["vim"]
+
+[[install]]
+group = "plugin-vim-airline"
+optional = true
+method = "git"
+url = "https://github.com/vim-airline/vim-airline"
+rev = "0000000000000000000000000000000000000000"
+dest = "~/.vim/pack/plugins/opt/vim-airline"
+bump = {}
+
+[[install]]
+group = "plugin-vim-airline-themes"
+optional = true
+method = "git"
+url = "https://github.com/vim-airline/vim-airline-themes"
+rev = "0000000000000000000000000000000000000000"
+dest = "~/.vim/pack/plugins/opt/vim-airline-themes"
+bump = {}
+
+[[install]]
+group = "plugin-nerdtree"
+optional = true
+method = "git"
+url = "https://github.com/preservim/nerdtree"
+rev = "0000000000000000000000000000000000000000"
+dest = "~/.vim/pack/plugins/opt/nerdtree"
+bump = {}
+
+[[install]]
+group = "plugin-nerdtree-git-plugin"
+optional = true
+method = "git"
+url = "https://github.com/Xuyuanp/nerdtree-git-plugin"
+rev = "0000000000000000000000000000000000000000"
+dest = "~/.vim/pack/plugins/opt/nerdtree-git-plugin"
+bump = {}
+
+[[install]]
+group = "plugin-vim-fugitive"
+optional = true
+method = "git"
+url = "https://github.com/tpope/vim-fugitive"
+rev = "0000000000000000000000000000000000000000"
+dest = "~/.vim/pack/plugins/opt/vim-fugitive"
+bump = {}
+
+[[install]]
+group = "plugin-vim-devicons"
+optional = true
+method = "git"
+url = "https://github.com/ryanoasis/vim-devicons"
+rev = "0000000000000000000000000000000000000000"
+dest = "~/.vim/pack/plugins/opt/vim-devicons"
+bump = {}
+
+[[install]]
+group = "plugin-coc-nvim"
+optional = true
+method = "git"
+url = "https://github.com/neoclide/coc.nvim"
+rev = "0000000000000000000000000000000000000000"
+dest = "~/.vim/pack/plugins/opt/coc.nvim"
+bump = { branch = "release" }
+
+[[config]]
+src = "files/vimrc"
+dest = { unix = "~/.vimrc" }
+
+[[config]]
+src = "files/config"
+dest = { unix = "~/.vim/config" }
+
+[[config]]
+src = "files/templates"
+dest = { unix = "~/.vim/templates" }
+
+# Estado/preferência do usuário: criado uma vez, nunca sobrescrito.
+[[config]]
+src = "files/seed/local.vim"
+dest = { unix = "~/.vim/config/local.vim" }
+mode = "seed"
+
+[[config]]
+src = "files/seed/coc-settings.json"
+dest = { unix = "~/.vim/coc-settings.json" }
+mode = "seed"
+
+[[hook]]
+name = "wrapper"
+when = { os = "linux" }
+script = "hooks/wrapper.sh"
+optional = true
+
+[[hook]]
+name = "coc-extensions"
+script = "hooks/coc-extensions.sh"
+on = "once"
+needs = ["node"]
+optional = true

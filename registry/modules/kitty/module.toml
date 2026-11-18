@@ -1,0 +1,108 @@
+schema = 1
+id = "kitty"
+name = "kitty"
+description = "Terminal com aceleração de GPU, com paleta e transparência configuráveis"
+platforms = ["linux", "macos"]
+requires = ["font-jetbrains-mono"]
+
+# Aparência (equivale ao seletor interativo do install.sh): hiraku set kitty palette=nord opacity=90 blur=12
+[options.palette]
+type = "choice"
+values = ["navy", "midnight", "graphite", "purple", "pastel", "pastel_blue", "solarized_dark", "solarized_light", "wine", "forest", "cyan", "amber", "indigo", "pink", "dracula", "nord", "gruvbox", "tokyo", "catppuccin", "onedark", "rosepine", "monokai", "ayu", "everforest", "kanagawa", "oled", "github", "sunset"]
+default = "navy"
+description = "Paleta de cores (arquivos em files/palettes)"
+
+[options.opacity]
+type = "number"
+min = 30
+max = 100
+default = 80
+divisor = 100
+description = "Opacidade do fundo, em % (100 = sólido)"
+
+[options.blur]
+type = "number"
+min = 0
+max = 64
+default = 18
+description = "Desfoque do fundo (0 = desligado)"
+
+# Com root: pacote da distro.
+[[install]]
+when = { os = "linux", root = true }
+method = "pkg"
+names = { dnf = "kitty", apt = "kitty", pacman = "kitty", zypper = "kitty" }
+provides = ["kitty"]
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "kitty" }
+cask = true
+provides = ["kitty"]
+
+# Sem root: build oficial do kitty em ~/.local/kitty.app.
+[[install]]
+when = { os = "linux", arch = "x86_64" }
+provides = ["kitty"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/kovidgoyal/kitty/releases/download/v{version}/kitty-{version}-x86_64.txz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/kitty.app"
+bins = [{ src = "bin/kitty", link = "~/.local/bin/kitty" }, { src = "bin/kitten", link = "~/.local/bin/kitten" }]
+bump = { github = "kovidgoyal/kitty" }
+
+[[install]]
+when = { os = "linux", arch = "aarch64" }
+provides = ["kitty"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/kovidgoyal/kitty/releases/download/v{version}/kitty-{version}-arm64.txz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/kitty.app"
+bins = [{ src = "bin/kitty", link = "~/.local/bin/kitty" }, { src = "bin/kitten", link = "~/.local/bin/kitten" }]
+bump = { github = "kovidgoyal/kitty" }
+
+[[config]]
+src = "files/kitty.conf"
+dest = { unix = "~/.config/kitty/kitty.conf" }
+
+[[config]]
+src = "files/transparency.conf"
+dest = { unix = "~/.config/kitty/transparency.conf" }
+template = true
+
+# `src` com template: o arquivo vem da paleta escolhida.
+[[config]]
+src = "files/palettes/{{ palette }}.conf"
+dest = { unix = "~/.config/kitty/current-theme.conf" }
+
+[[hook]]
+name = "desktop-integration"
+when = { os = "linux" }
+script = "hooks/desktop-integration.sh"
+optional = true
+
+[[hook]]
+name = "default-terminal"
+when = { os = "linux" }
+script = "hooks/default-terminal.sh"
+on = "once"
+optional = true
+root = true
+
+[[hook]]
+name = "pin-dock"
+when = { os = "linux" }
+script = "hooks/pin-dock.sh"
+on = "once"
+needs = ["gsettings"]
+optional = true
+
+# Roda quando alguma config do kitty mudou (ex.: paleta trocada no hub).
+[[hook]]
+name = "reload-config"
+script = "hooks/reload-config.sh"
+needs = ["pkill"]
+optional = true

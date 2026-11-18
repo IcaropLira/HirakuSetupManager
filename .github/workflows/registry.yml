@@ -1,0 +1,96 @@
+# Mantém o registry em dia e publicado.
+#
+# 1. `hiraku registry bump` descobre as versões novas (kitty, nvim, node, ...),
+#    baixa, calcula o sha256 e reescreve os manifests.
+# 2. Se algo mudou em relação ao que está publicado, sobe a `version` do
+#    registry.toml e faz commit no main.
+# 3. Empacota, assina com minisign e publica na release `registry` (pré-release,
+#    para nunca virar a "latest", que é a do app).
+#
+# Os apps instalados buscam esse registry no sync (agendado ou manual) e
+# instalam as versões novas sozinhos.
+name: Registry
+
+on:
+  schedule:
+    - cron: "17 9 * * 1"   # segundas, 06:17 em Recife
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["registry/**"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: registry
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release -p hiraku-cli
+
+      - name: Buscar versões novas (bump)
+        run: |
+          if ! ./target/release/hiraku registry bump --registry registry/modules; then
+            echo "::warning::o bump falhou em algum módulo; os outros seguem (veja o log acima)"
+          fi
+
+      - name: Comparar com o registry publicado
+        id: cmp
+        run: |
+          set -euo pipefail
+          local_version() { sed -n 's/^version *= *\([0-9]*\).*/\1/p' registry/registry.toml; }
+          PUB=0; SAME=0
+          if gh release download registry -p registry.tar.gz -D /tmp/pub 2>/dev/null; then
+            mkdir -p /tmp/pubx && tar -xzf /tmp/pub/registry.tar.gz -C /tmp/pubx
+            PUB=$(sed -n 's/^version *= *\([0-9]*\).*/\1/p' /tmp/pubx/registry.toml)
+            if diff -rq /tmp/pubx/modules registry/modules >/dev/null; then SAME=1; fi
+          fi
+          if [ "$SAME" = 1 ]; then
+            echo "registry publicado (v$PUB) já está igual"; echo "publish=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "$(local_version)" -le "$PUB" ]; then
+            sed -i "s/^version *= *[0-9]*/version = $((PUB + 1))/" registry/registry.toml
+          fi
+          echo "versão a publicar: $(local_version) (publicada: $PUB)"
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit das versões novas
+        if: steps.cmp.outputs.publish == 'true'
+        run: |
+          if [ -n "$(git status --porcelain registry)" ]; then
+            git config user.name "hiraku-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add registry
+            git commit -m "registry: versões novas (v$(sed -n 's/^version *= *\([0-9]*\).*/\1/p' registry/registry.toml))"
+            git push
+          fi
+
+      - name: Assinar e publicar
+        if: steps.cmp.outputs.publish == 'true'
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$MINISIGN_SECRET_KEY" ]; then
+            echo "::warning::secret MINISIGN_SECRET_KEY ausente: rode scripts/setup-signing.sh. Versões commitadas, nada publicado."
+            exit 0
+          fi
+          sudo apt-get install -y minisign
+          umask 077
+          printf '%s\n' "$MINISIGN_SECRET_KEY" > "$RUNNER_TEMP/registry.key"
+          MINISIGN_KEY_FILE="$RUNNER_TEMP/registry.key" scripts/publish-registry.sh
+          rm -f "$RUNNER_TEMP/registry.key"
+          if ! gh release view registry >/dev/null 2>&1; then
+            gh release create registry --prerelease --title "Registry" \
+              --notes "Registry assinado que os apps instalados baixam no sync. Atualizado pelo workflow Registry; não é uma versão do app."
+          fi
+          gh release upload registry dist/registry.tar.gz dist/registry.tar.gz.minisig --clobber

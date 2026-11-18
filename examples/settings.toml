@@ -1,0 +1,27 @@
+# ~/.config/hiraku/settings.toml  (Linux)   — exemplo equivalente ao setup atual do HirakuSetupManager.
+# Aplique com:  hiraku sync    (e agende com: hiraku schedule install --every 6h)
+
+# "user" instala tudo em ~/.local, sem sudo. "system" usa os pacotes da distro quando há root.
+# Omitido = automático (system se houver sudo, user se não).
+mode = "user"
+
+modules = [
+  "font-jetbrains-mono",
+  "kitty", "tmux", "vim", "nvim",
+  "node", "jdk", "ripgrep",
+  # "dev-prereqs",   # git/gcc/make/unzip via pacote da distro: só faz algo com root (mode = "system")
+  "shell", "starship", "eza", "bat", "zoxide", "fzf", "fastfetch",
+]
+
+# Fixa a versão do binário (as configs continuam sincronizando). Descomente se precisar:
+# [pins]
+# nvim = "0.10.*"
+
+# Valores são sempre texto; o hiraku valida contra as opções do módulo (hiraku plan <módulo>).
+[options.kitty]
+palette = "navy"      # navy, midnight, graphite, purple, ... (28 paletas)
+opacity = "80"        # 30 a 100 (100 = sólido)
+blur = "18"           # 0 a 64
+
+[options.shell]
+visualizer = "none"   # none | fastfetch | neofetch

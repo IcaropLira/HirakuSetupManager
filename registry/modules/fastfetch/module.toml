@@ -1,0 +1,40 @@
+schema = 1
+id = "fastfetch"
+name = "fastfetch"
+description = "Resumo do sistema (visualizer do shell)"
+platforms = ["linux", "macos", "windows"]
+
+[[install]]
+when = { os = "linux", arch = "x86_64" }
+provides = ["fastfetch"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/fastfetch-cli/fastfetch/releases/download/{version}/fastfetch-linux-amd64.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/fastfetch"
+strip_components = 1
+bins = [{ src = "usr/bin/fastfetch", link = "~/.local/bin/fastfetch" }]
+bump = { github = "fastfetch-cli/fastfetch", tag_prefix = "" }
+
+[[install]]
+when = { os = "linux", arch = "aarch64" }
+provides = ["fastfetch"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/fastfetch-cli/fastfetch/releases/download/{version}/fastfetch-linux-aarch64.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/fastfetch"
+strip_components = 1
+bins = [{ src = "usr/bin/fastfetch", link = "~/.local/bin/fastfetch" }]
+bump = { github = "fastfetch-cli/fastfetch", tag_prefix = "" }
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "fastfetch" }
+provides = ["fastfetch"]
+
+[[install]]
+when = { os = "windows" }
+method = "pkg"
+names = { scoop = "fastfetch" }

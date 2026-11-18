@@ -1,0 +1,40 @@
+schema = 1
+id = "ripgrep"
+name = "ripgrep"
+description = "Busca rápida (o telescope do nvim usa o rg)"
+platforms = ["linux", "macos", "windows"]
+
+[[install]]
+when = { os = "linux", arch = "x86_64" }
+provides = ["rg"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/BurntSushi/ripgrep/releases/download/{version}/ripgrep-{version}-x86_64-unknown-linux-musl.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/ripgrep"
+strip_components = 1
+bins = [{ src = "rg", link = "~/.local/bin/rg" }]
+bump = { github = "BurntSushi/ripgrep", tag_prefix = "" }
+
+[[install]]
+when = { os = "linux", arch = "aarch64" }
+provides = ["rg"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/BurntSushi/ripgrep/releases/download/{version}/ripgrep-{version}-aarch64-unknown-linux-gnu.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/ripgrep"
+strip_components = 1
+bins = [{ src = "rg", link = "~/.local/bin/rg" }]
+bump = { github = "BurntSushi/ripgrep", tag_prefix = "" }
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "ripgrep" }
+provides = ["rg"]
+
+[[install]]
+when = { os = "windows" }
+method = "pkg"
+names = { scoop = "ripgrep" }
