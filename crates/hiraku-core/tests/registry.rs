@@ -52,7 +52,8 @@ fn editor_option_files_render_to_valid_json() {
         assert_eq!(json["keymaps"][0]["rhs"], "\"_dd");
 
         // Template de C++ padrão = o arquivo do módulo; teclas com os padrões.
-        let tpl = std::fs::read_to_string(modules_dir().join("vim/files/templates/cpp.cpp")).unwrap();
+        // (no Windows o checkout do git pode trazer \r\n)
+        let tpl = std::fs::read_to_string(modules_dir().join("vim/files/templates/cpp.cpp")).unwrap().replace("\r\n", "\n");
         let vars = hiraku_core::configs::resolve_options(m, &BTreeMap::new()).unwrap();
         let json: serde_json::Value = serde_json::from_str(&hiraku_core::configs::render_template(&src, &vars).unwrap()).unwrap();
         assert_eq!(json["template_cpp"], tpl.as_str(), "{id}");
