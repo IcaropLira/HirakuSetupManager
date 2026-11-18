@@ -3,6 +3,8 @@ id = "fzf"
 name = "fzf"
 description = "Busca fuzzy interativa"
 platforms = ["linux", "macos", "windows"]
+homepage = "https://github.com/junegunn/fzf"
+discover = ["shell", "tmux", "vim"]
 
 [[install]]
 when = { os = "linux", arch = "x86_64" }

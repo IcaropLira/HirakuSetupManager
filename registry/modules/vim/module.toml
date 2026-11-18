@@ -135,7 +135,7 @@ optional = true
 [options.colorscheme]
 type = "choice"
 default = "auto"
-values = ["auto", "maria_isabel", "jales", "camelo", "sassa", "malvadao", "mateus_sao_paulino", "pedro_de", "belchior", "lucas_ribeiro", "alan_turing", "alan_turing_antiresenha", "henrique", "off_light", "geraldo", "cabeludo", "cookie", "ruiva", "baiana", "do_mal", "sofia", "guerra", "soares", "biscoitinho", "gvsl", "jf", "toyman", "massoni", "dijkstra", "ever_dream_this_man", "raul", "acesso_negado", "espresso", "plum", "flatui", "neocybervim", "sunbather", "tatami", "lucid", "lucario", "roti", "hotdog", "macvim_light", "farout", "burgundy", "petra"]
+values = ["auto", "maria_isabel", "jales", "camelo", "sassa", "malvadao", "mateus_sao_paulino", "pedro_de", "belchior", "lucas_ribeiro", "alan_turing", "alan_turing_antiresenha", "henrique", "off_light", "geraldo", "cabeludo", "cookie", "ruiva", "baiana", "do_mal", "sofia", "guerra", "soares", "biscoitinho", "gvsl", "jf", "toyman", "massoni", "dijkstra", "ever_dream_this_man", "raul", "acesso_negado", "espresso", "plum", "flatui", "neocybervim", "sunbather", "tatami", "lucid", "lucario", "roti", "hotdog", "macvim_light", "farout", "burgundy", "o_do_lol", "petra"]
 label = "Tema"
 section = "Aparência"
 description = "Colorscheme do editor. \"O último escolhido no editor\" deixa a troca com F3/:Th."
@@ -186,6 +186,7 @@ preview = "../icaro-themes/files/icaro-theme/colors/{value}.vim"
 "macvim_light" = "JA"
 "farout" = "Holanda"
 "burgundy" = "Ela também é maligna..."
+"o_do_lol" = "o do LOL"
 "petra" = "Sonhei com você essa noite"
 
 [options.transparent]
@@ -454,6 +455,70 @@ default = true
 label = "Autocomplete e LSP (coc.nvim)"
 section = "Plugins"
 description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Vim)."
+
+[options.plugin_surround]
+type = "bool"
+default = false
+label = "Trocar o que está em volta (surround)"
+section = "Descobrir"
+description = "cs\"' troca aspas por apóstrofos, ds( tira parênteses, ysiw] cerca a palavra. Baixa na hora, com o Vim aberto."
+link = "https://github.com/tpope/vim-surround"
+
+[options.plugin_commentary]
+type = "bool"
+default = false
+label = "Comentar com gcc (commentary)"
+section = "Descobrir"
+description = "gcc comenta a linha; gc no modo visual comenta a seleção, em qualquer linguagem. Baixa na hora, com o Vim aberto."
+link = "https://github.com/tpope/vim-commentary"
+
+[options.plugin_fzf]
+type = "bool"
+default = false
+label = "Buscar arquivos e texto (fzf.vim)"
+section = "Descobrir"
+description = "<leader>ff arquivos, <leader>fg texto (ripgrep), <leader>fb buffers. Precisa dos módulos fzf e ripgrep. Baixa na hora, com o Vim aberto."
+link = "https://github.com/junegunn/fzf.vim"
+
+[options.plugin_gitgutter]
+type = "bool"
+default = false
+label = "Marcas de git na margem (gitgutter)"
+section = "Descobrir"
+description = "Mostra linhas adicionadas, mudadas e apagadas ao lado da numeração. Baixa na hora, com o Vim aberto."
+link = "https://github.com/airblade/vim-gitgutter"
+
+[options.plugin_tmux_navigator]
+type = "bool"
+default = false
+label = "Navegar junto com o tmux"
+section = "Descobrir"
+description = "Ctrl+h/j/k/l anda entre janelas do Vim e painéis do tmux. Ligue também no Descobrir do tmux. Baixa na hora, com o Vim aberto."
+link = "https://github.com/christoomey/vim-tmux-navigator"
+
+[options.plugin_startify]
+type = "bool"
+default = false
+label = "Tela inicial com arquivos recentes (startify)"
+section = "Descobrir"
+description = "Abrir o Vim sem arquivo mostra os recentes e as sessões salvas. Baixa na hora, com o Vim aberto."
+link = "https://github.com/mhinz/vim-startify"
+
+[options.plugin_goyo]
+type = "bool"
+default = false
+label = "Modo foco (goyo)"
+section = "Descobrir"
+description = "<leader>z centraliza o texto e esconde o resto da interface. Baixa na hora, com o Vim aberto."
+link = "https://github.com/junegunn/goyo.vim"
+
+[options.plugin_indentline]
+type = "bool"
+default = false
+label = "Guias de indentação (indentLine)"
+section = "Descobrir"
+description = "Uma linha fininha marca cada nível de indentação. Baixa na hora, com o Vim aberto."
+link = "https://github.com/Yggdroot/indentLine"
 
 [options.extra]
 type = "lines"

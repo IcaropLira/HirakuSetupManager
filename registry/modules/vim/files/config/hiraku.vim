@@ -201,6 +201,9 @@ function! HirakuApplyAll() abort
     call HirakuApplyTheme()
     call HirakuApplyAutopairs()
     call HirakuApplyExtra()
+    if exists('*HirakuApplyDiscover')
+        call HirakuApplyDiscover()
+    endif
 endfunction
 
 " ---------------------------------------------------------------- ao vivo

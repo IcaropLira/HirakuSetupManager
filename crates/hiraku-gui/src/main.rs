@@ -49,6 +49,10 @@ struct Info {
     os: String,
     can_root: bool,
     is_root: bool,
+    /// "Lembrar o sudo" ligado: instalar não pede senha.
+    sudo_saved: bool,
+    /// Esta máquina usa um gerenciador de pacotes que exige root (dnf/apt/...).
+    pkg_needs_root: bool,
     first_run: bool,
     registry_version: u64,
     registry_source: String,
@@ -66,6 +70,8 @@ fn info(app: AppHandle, state: State<AppState>) -> Res<Info> {
         os: s.env.os.as_str().to_string(),
         can_root: s.can_root(),
         is_root: s.env.privilege == Privilege::Root,
+        sudo_saved: s.sudo_saved(),
+        pkg_needs_root: s.env.pkg_manager.is_some_and(|p| p.needs_root()),
         first_run: s.is_first_run(),
         registry_version: s.registry_version,
         registry_source: s.registry_source.clone(),
@@ -184,6 +190,11 @@ fn sudo_auth(state: State<AppState>, password: String) -> Res<()> {
         *keepalive = Some(Keepalive::start());
     }
     Ok(())
+}
+
+#[tauri::command]
+fn sudo_remember(state: State<AppState>, password: String, on: bool) -> Res<String> {
+    services(&state)?.set_sudo_saved(&password, on)
 }
 
 #[derive(Clone, Serialize)]
@@ -350,11 +361,16 @@ fn open_config_dir(state: State<AppState>) -> Res<()> {
 /// quando a release não tem atualização automática). Só aceita este repositório.
 #[tauri::command]
 fn open_url(state: State<AppState>, url: String) -> Res<()> {
+    // Só abre os downloads deste repo e as páginas de projeto declaradas no registry.
     const ALLOWED: &str = "https://github.com/IcaropLira/HirakuSetupManager/";
-    if !url.starts_with(ALLOWED) || url.contains(char::is_whitespace) {
+    let s = services(&state)?;
+    let declared = s.manifests.iter().any(|(m, _)| {
+        m.homepage.as_deref() == Some(url.as_str()) || m.options.values().any(|o| o.link.as_deref() == Some(url.as_str()))
+    });
+    if !(url.starts_with(ALLOWED) || declared) || url.contains(char::is_whitespace) {
         return Err("endereço não permitido".to_string());
     }
-    let os = services(&state)?.env.os;
+    let os = s.env.os;
     let mut cmd = match os {
         hiraku_core::Os::Macos => std::process::Command::new("open"),
         hiraku_core::Os::Windows => {
@@ -410,6 +426,7 @@ fn main() -> ExitCode {
             resolve,
             needs_root,
             sudo_auth,
+            sudo_remember,
             start_sync,
             refresh_registry,
             resolve_dependencies,

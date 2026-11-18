@@ -756,6 +756,8 @@ mod tests {
                     ),
                     spec("title", OptKind::Text, "kitty"),
                 ],
+                homepage: None,
+                discover: Vec::new(),
             },
             ModuleInfo {
                 id: "tmux".into(),
@@ -764,6 +766,8 @@ mod tests {
                 supported: true,
                 requires: vec![],
                 options: vec![],
+                homepage: None,
+                discover: Vec::new(),
             },
         ]
     }

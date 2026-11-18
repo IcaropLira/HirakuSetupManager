@@ -3,6 +3,8 @@ id = "bat"
 name = "bat"
 description = "Substituto do cat com realce de sintaxe"
 platforms = ["linux", "macos", "windows"]
+homepage = "https://github.com/sharkdp/bat"
+discover = ["shell", "nvim"]
 
 [[install]]
 when = { os = "linux", arch = "x86_64" }

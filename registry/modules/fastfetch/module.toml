@@ -3,6 +3,8 @@ id = "fastfetch"
 name = "fastfetch"
 description = "Resumo do sistema (visualizer do shell)"
 platforms = ["linux", "macos", "windows"]
+homepage = "https://github.com/fastfetch-cli/fastfetch"
+discover = ["shell", "kitty"]
 
 [[install]]
 when = { os = "linux", arch = "x86_64" }

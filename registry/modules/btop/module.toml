@@ -1,0 +1,20 @@
+schema = 1
+id = "btop"
+name = "btop"
+description = "Monitor de CPU, memória, disco e processos, bonito e com mouse"
+platforms = ["linux", "macos"]
+homepage = "https://github.com/aristocratos/btop"
+discover = ["shell", "kitty", "tmux"]
+
+# Vem dos pacotes do sistema (no modo "só no meu usuário" não há como instalar).
+[[install]]
+when = { os = "linux", root = true }
+method = "pkg"
+names = { dnf = "btop", apt = "btop", pacman = "btop", zypper = "btop" }
+provides = ["btop"]
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "btop" }
+provides = ["btop"]

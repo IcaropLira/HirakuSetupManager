@@ -350,6 +350,8 @@ mod tests {
             supported: true,
             requires: req.iter().map(|s| s.to_string()).collect(),
             options,
+            homepage: None,
+            discover: Vec::new(),
         }
     }
 

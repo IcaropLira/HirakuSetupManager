@@ -106,6 +106,36 @@ def editor(name):
         desc = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Vim)."
     for k, label in plugins:
         O.append(opt(f"plugin_{k}", "bool", True, label, P, desc))
+    # Descobrir: extras que começam desligados; ligar baixa o plugin.
+    D = "Descobrir"
+    if nvim:
+        found = [
+            ("flash", "Pular para qualquer lugar (flash)", "<leader>j + duas letras leva o cursor a qualquer ponto visível da tela.", "https://github.com/folke/flash.nvim"),
+            ("surround", "Trocar o que está em volta (surround)", "cs\"' troca aspas por apóstrofos, ds( tira parênteses, ysiw] cerca a palavra.", "https://github.com/kylechui/nvim-surround"),
+            ("oil", "Editar pastas como texto (oil)", "\"-\" abre a pasta do arquivo: renomeie, mova e apague editando as linhas e salve com :w.", "https://github.com/stevearc/oil.nvim"),
+            ("toggleterm", "Terminal flutuante (toggleterm)", "Ctrl+\\ abre e fecha um terminal por cima do código.", "https://github.com/akinsho/toggleterm.nvim"),
+            ("zen_mode", "Modo foco (zen-mode)", "<leader>z centraliza o texto e esconde números, barras e abas.", "https://github.com/folke/zen-mode.nvim"),
+            ("tmux_navigator", "Navegar junto com o tmux", "Ctrl+h/j/k/l anda entre janelas do Neovim e painéis do tmux. Ligue também no Descobrir do tmux.", "https://github.com/christoomey/vim-tmux-navigator"),
+            ("lazygit", "lazygit dentro do editor", "<leader>gg abre o lazygit numa janela flutuante. Precisa do módulo lazygit.", "https://github.com/kdheepak/lazygit.nvim"),
+            ("persistence", "Lembrar os arquivos abertos (sessões)", "<leader>ps reabre os arquivos que estavam abertos nesta pasta; <leader>pl, a última sessão.", "https://github.com/folke/persistence.nvim"),
+            ("render_markdown", "Markdown desenhado no editor", "Títulos, listas, tabelas e caixas de código aparecem formatados nos arquivos .md.", "https://github.com/MeanderingProgrammer/render-markdown.nvim"),
+            ("colorizer", "Mostrar cores no código", "Pinta #rrggbb, rgb() e hsl() com a própria cor (CSS, configs de tema...).", "https://github.com/catgoose/nvim-colorizer.lua"),
+        ]
+        tail = " Baixa ao reabrir o Neovim."
+    else:
+        found = [
+            ("surround", "Trocar o que está em volta (surround)", "cs\"' troca aspas por apóstrofos, ds( tira parênteses, ysiw] cerca a palavra.", "https://github.com/tpope/vim-surround"),
+            ("commentary", "Comentar com gcc (commentary)", "gcc comenta a linha; gc no modo visual comenta a seleção, em qualquer linguagem.", "https://github.com/tpope/vim-commentary"),
+            ("fzf", "Buscar arquivos e texto (fzf.vim)", "<leader>ff arquivos, <leader>fg texto (ripgrep), <leader>fb buffers. Precisa dos módulos fzf e ripgrep.", "https://github.com/junegunn/fzf.vim"),
+            ("gitgutter", "Marcas de git na margem (gitgutter)", "Mostra linhas adicionadas, mudadas e apagadas ao lado da numeração.", "https://github.com/airblade/vim-gitgutter"),
+            ("tmux_navigator", "Navegar junto com o tmux", "Ctrl+h/j/k/l anda entre janelas do Vim e painéis do tmux. Ligue também no Descobrir do tmux.", "https://github.com/christoomey/vim-tmux-navigator"),
+            ("startify", "Tela inicial com arquivos recentes (startify)", "Abrir o Vim sem arquivo mostra os recentes e as sessões salvas.", "https://github.com/mhinz/vim-startify"),
+            ("goyo", "Modo foco (goyo)", "<leader>z centraliza o texto e esconde o resto da interface.", "https://github.com/junegunn/goyo.vim"),
+            ("indentline", "Guias de indentação (indentLine)", "Uma linha fininha marca cada nível de indentação.", "https://github.com/Yggdroot/indentLine"),
+        ]
+        tail = " Baixa na hora, com o Vim aberto."
+    for k, label, d, link in found:
+        O.append(opt(f"plugin_{k}", "bool", False, label, D, d + tail, link=link))
     O.append(opt("extra", "lines", "", "Configuração extra", X,
                  ("Código Lua" if nvim else "Vimscript") + " executado por último, a cada vez que as opções são aplicadas. Para o que não tem botão aqui."))
     return O
@@ -137,6 +167,8 @@ def options_toml(O):
             out.append(f"description = {q(o['description'])}")
         if "preview" in o:
             out.append(f"preview = {q(o['preview'])}")
+        if "link" in o:
+            out.append(f"link = {q(o['link'])}")
         if "labels" in o:
             out.append(f"[options.{o['key']}.labels]")
             for k, v in o["labels"].items():

@@ -820,6 +820,8 @@ mod tests {
                     ..Default::default()
                 },
             ],
+            homepage: None,
+            discover: Vec::new(),
         }
     }
 

@@ -49,7 +49,7 @@ header.topbar{display:flex;flex-wrap:wrap;align-items:center;gap:16px;row-gap:10
 
 .brand{display:flex;align-items:center;gap:10px}
 .brand-mark{width:38px;height:38px;padding:0;border:0;background:none;cursor:pointer}
-.applogo{width:100%;height:100%;display:block;object-fit:contain;filter:drop-shadow(0 4px 10px color-mix(in srgb,#e2639a 40%,transparent))}
+.applogo{width:100%;height:100%;display:block;filter:drop-shadow(0 3px 8px color-mix(in srgb,var(--acc) 45%,transparent))}
 .brand-txt h1{margin:0;font:700 17px var(--serif)}
 .badge{font-size:11px;color:var(--mut)}
 
@@ -340,3 +340,19 @@ select.txt{font-family:var(--sans)}
 @media (max-width:1100px){.cz{grid-template-columns:1fr}.cz-rail{flex-direction:row;flex-wrap:wrap}.cz-item{width:auto}.cz-live{width:100%}.cz-search{width:160px}}
 .dl-list{display:flex;flex-direction:column;gap:6px;margin:10px 0}
 .dl-list .radio span{margin-left:auto;font-size:12px}
+.chk{display:flex;align-items:center;gap:8px;margin:10px 0 2px;font-size:13px;cursor:pointer}.chk input{accent-color:var(--acc);width:15px;height:15px}
+/* Descobrir */
+.cz-tabs button.disc{color:var(--acc)}
+.dc-intro{margin:0 0 6px;font-size:13px}
+.dc-sub{font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:16px 0 8px}
+.dc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.dc-card{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid var(--ln);border-radius:14px;background:color-mix(in srgb,var(--pn) 70%,transparent);transition:border-color .15s,background .15s}
+.dc-card.on{border-color:color-mix(in srgb,var(--acc) 60%,transparent);background:color-mix(in srgb,var(--acc) 8%,var(--pn))}
+.dc-top{display:flex;align-items:center;gap:10px}
+.dc-top b{flex:1;font-size:14px;line-height:1.3}
+.dc-top .pj-tile{flex:none}
+.dc-card p{margin:0;font-size:12.5px;line-height:1.5;color:var(--mut);flex:1}
+.dc-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:22px}
+.dc-link{border:0;background:none;padding:0;color:var(--acc);font:12px var(--mono);cursor:pointer;margin-left:auto;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dc-link:hover{text-decoration:underline}
+.tag.ok{color:#5fbf8a;border-color:color-mix(in srgb,#5fbf8a 50%,transparent)}

@@ -62,6 +62,7 @@ let g:icaro_themes = [
       \ {'id': 'macvim_light',       'title': 'JA',                    'short': 'JA',  'subtitle': 'Goats'},
       \ {'id': 'farout',             'title': 'Holanda',               'short': 'HOL', 'subtitle': 'Goats'},
       \ {'id': 'burgundy',           'title': 'Ela também é maligna...', 'short': 'MAL2', 'subtitle': 'Antagonistas'},
+      \ {'id': 'o_do_lol',           'title': 'o do LOL',              'short': 'LOL', 'subtitle': 'AA'},
       \ {'id': 'petra',              'title': 'Sonhei com você essa noite', 'short': 'SON', 'subtitle': 'Não tenho descrição para isso'},
       \ ]
 

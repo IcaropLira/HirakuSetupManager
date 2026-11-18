@@ -49,5 +49,15 @@
   "plugin_illuminate": {{ plugin_illuminate }},
   "plugin_cursorword": {{ plugin_cursorword }},
   "plugin_scrollbar": {{ plugin_scrollbar }},
+  "plugin_flash": {{ plugin_flash }},
+  "plugin_surround": {{ plugin_surround }},
+  "plugin_oil": {{ plugin_oil }},
+  "plugin_toggleterm": {{ plugin_toggleterm }},
+  "plugin_zen_mode": {{ plugin_zen_mode }},
+  "plugin_tmux_navigator": {{ plugin_tmux_navigator }},
+  "plugin_lazygit": {{ plugin_lazygit }},
+  "plugin_persistence": {{ plugin_persistence }},
+  "plugin_render_markdown": {{ plugin_render_markdown }},
+  "plugin_colorizer": {{ plugin_colorizer }},
   "extra": {{ extra | json }}
 }

@@ -199,6 +199,7 @@ end
 
 function M.apply_theme()
   local name = M.get("colorscheme", "auto")
+  if name == "rose-pine" then name = "o_do_lol" end -- o antigo "o do LOL"
   if name ~= "auto" and vim.g.colors_name ~= name then
     local ok, err = pcall(vim.cmd.colorscheme, name)
     if not ok then vim.notify("Hiraku: tema '" .. name .. "' não encontrado: " .. tostring(err), vim.log.levels.WARN) end

@@ -36,5 +36,13 @@
   "plugin_nerdtree": {{ plugin_nerdtree }},
   "plugin_fugitive": {{ plugin_fugitive }},
   "plugin_coc": {{ plugin_coc }},
+  "plugin_surround": {{ plugin_surround }},
+  "plugin_commentary": {{ plugin_commentary }},
+  "plugin_fzf": {{ plugin_fzf }},
+  "plugin_gitgutter": {{ plugin_gitgutter }},
+  "plugin_tmux_navigator": {{ plugin_tmux_navigator }},
+  "plugin_startify": {{ plugin_startify }},
+  "plugin_goyo": {{ plugin_goyo }},
+  "plugin_indentline": {{ plugin_indentline }},
   "extra": {{ extra | json }}
 }

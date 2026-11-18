@@ -3,6 +3,8 @@ id = "ripgrep"
 name = "ripgrep"
 description = "Busca rápida (o telescope do nvim usa o rg)"
 platforms = ["linux", "macos", "windows"]
+homepage = "https://github.com/BurntSushi/ripgrep"
+discover = ["shell", "nvim"]
 
 [[install]]
 when = { os = "linux", arch = "x86_64" }

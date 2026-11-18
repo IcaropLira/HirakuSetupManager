@@ -78,7 +78,7 @@ optional = true
 [options.colorscheme]
 type = "choice"
 default = "auto"
-values = ["auto", "maria_isabel", "jales", "camelo", "sassa", "malvadao", "mateus_sao_paulino", "pedro_de", "belchior", "lucas_ribeiro", "alan_turing", "alan_turing_antiresenha", "henrique", "off_light", "geraldo", "cabeludo", "cookie", "ruiva", "baiana", "do_mal", "sofia", "guerra", "soares", "biscoitinho", "gvsl", "jf", "toyman", "massoni", "dijkstra", "ever_dream_this_man", "raul", "acesso_negado", "espresso", "plum", "flatui", "neocybervim", "sunbather", "tatami", "lucid", "lucario", "roti", "hotdog", "macvim_light", "farout", "burgundy", "petra", "tokyonight-night", "c", "kanagawa", "rose-pine", "nightfox", "carbonfox"]
+values = ["auto", "maria_isabel", "jales", "camelo", "sassa", "malvadao", "mateus_sao_paulino", "pedro_de", "belchior", "lucas_ribeiro", "alan_turing", "alan_turing_antiresenha", "henrique", "off_light", "geraldo", "cabeludo", "cookie", "ruiva", "baiana", "do_mal", "sofia", "guerra", "soares", "biscoitinho", "gvsl", "jf", "toyman", "massoni", "dijkstra", "ever_dream_this_man", "raul", "acesso_negado", "espresso", "plum", "flatui", "neocybervim", "sunbather", "tatami", "lucid", "lucario", "roti", "hotdog", "macvim_light", "farout", "burgundy", "o_do_lol", "petra", "tokyonight-night", "c", "kanagawa", "nightfox", "carbonfox"]
 label = "Tema"
 section = "Aparência"
 description = "Colorscheme do editor. \"O último escolhido no editor\" deixa a troca com F3/:Th."
@@ -129,11 +129,11 @@ preview = "../icaro-themes/files/icaro-theme/colors/{value}.vim"
 "macvim_light" = "JA"
 "farout" = "Holanda"
 "burgundy" = "Ela também é maligna..."
+"o_do_lol" = "o do LOL"
 "petra" = "Sonhei com você essa noite"
 "tokyonight-night" = "EULLER D. NOBREGA"
 "c" = "PKJ Master"
 "kanagawa" = "Trompete"
-"rose-pine" = "o do LOL"
 "nightfox" = "Protegido"
 "carbonfox" = "POR MIM"
 
@@ -493,6 +493,86 @@ default = true
 label = "Barra de rolagem com marcas"
 section = "Plugins"
 description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_flash]
+type = "bool"
+default = false
+label = "Pular para qualquer lugar (flash)"
+section = "Descobrir"
+description = "<leader>j + duas letras leva o cursor a qualquer ponto visível da tela. Baixa ao reabrir o Neovim."
+link = "https://github.com/folke/flash.nvim"
+
+[options.plugin_surround]
+type = "bool"
+default = false
+label = "Trocar o que está em volta (surround)"
+section = "Descobrir"
+description = "cs\"' troca aspas por apóstrofos, ds( tira parênteses, ysiw] cerca a palavra. Baixa ao reabrir o Neovim."
+link = "https://github.com/kylechui/nvim-surround"
+
+[options.plugin_oil]
+type = "bool"
+default = false
+label = "Editar pastas como texto (oil)"
+section = "Descobrir"
+description = "\"-\" abre a pasta do arquivo: renomeie, mova e apague editando as linhas e salve com :w. Baixa ao reabrir o Neovim."
+link = "https://github.com/stevearc/oil.nvim"
+
+[options.plugin_toggleterm]
+type = "bool"
+default = false
+label = "Terminal flutuante (toggleterm)"
+section = "Descobrir"
+description = "Ctrl+\\ abre e fecha um terminal por cima do código. Baixa ao reabrir o Neovim."
+link = "https://github.com/akinsho/toggleterm.nvim"
+
+[options.plugin_zen_mode]
+type = "bool"
+default = false
+label = "Modo foco (zen-mode)"
+section = "Descobrir"
+description = "<leader>z centraliza o texto e esconde números, barras e abas. Baixa ao reabrir o Neovim."
+link = "https://github.com/folke/zen-mode.nvim"
+
+[options.plugin_tmux_navigator]
+type = "bool"
+default = false
+label = "Navegar junto com o tmux"
+section = "Descobrir"
+description = "Ctrl+h/j/k/l anda entre janelas do Neovim e painéis do tmux. Ligue também no Descobrir do tmux. Baixa ao reabrir o Neovim."
+link = "https://github.com/christoomey/vim-tmux-navigator"
+
+[options.plugin_lazygit]
+type = "bool"
+default = false
+label = "lazygit dentro do editor"
+section = "Descobrir"
+description = "<leader>gg abre o lazygit numa janela flutuante. Precisa do módulo lazygit. Baixa ao reabrir o Neovim."
+link = "https://github.com/kdheepak/lazygit.nvim"
+
+[options.plugin_persistence]
+type = "bool"
+default = false
+label = "Lembrar os arquivos abertos (sessões)"
+section = "Descobrir"
+description = "<leader>ps reabre os arquivos que estavam abertos nesta pasta; <leader>pl, a última sessão. Baixa ao reabrir o Neovim."
+link = "https://github.com/folke/persistence.nvim"
+
+[options.plugin_render_markdown]
+type = "bool"
+default = false
+label = "Markdown desenhado no editor"
+section = "Descobrir"
+description = "Títulos, listas, tabelas e caixas de código aparecem formatados nos arquivos .md. Baixa ao reabrir o Neovim."
+link = "https://github.com/MeanderingProgrammer/render-markdown.nvim"
+
+[options.plugin_colorizer]
+type = "bool"
+default = false
+label = "Mostrar cores no código"
+section = "Descobrir"
+description = "Pinta #rrggbb, rgb() e hsl() com a própria cor (CSS, configs de tema...). Baixa ao reabrir o Neovim."
+link = "https://github.com/catgoose/nvim-colorizer.lua"
 
 [options.extra]
 type = "lines"

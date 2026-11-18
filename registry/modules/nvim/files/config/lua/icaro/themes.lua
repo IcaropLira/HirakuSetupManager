@@ -11,7 +11,6 @@ local extras = {
   { id = "tokyonight-night", title = "EULLER D. NOBREGA",     short = "EDN", subtitle = "Banco de Mãe Joana+" },
   { id = "c", title = "PKJ Master", short = "PKJ", subtitle = "AA" },
   { id = "kanagawa",         title = "Trompete",        short = "TRO", subtitle = "AA" },
-  { id = "rose-pine",        title = "o do LOL",       short = "LOL", subtitle = "AA" },
   { id = "nightfox",         title = "Protegido",        short = "MAX", subtitle = "AA" },
   { id = "carbonfox",        title = "POR MIM",       short = "MIM", subtitle = "AA" },
 }
@@ -27,6 +26,7 @@ end
 M.index = 1
 local by_id = {}
 for i, t in ipairs(M.list) do by_id[t.id] = i end
+by_id["rose-pine"] = by_id["o_do_lol"] -- "o do LOL" era o rose-pine; agora é tema próprio
 
 function M.current() return M.list[M.index] end
 function M.name() return M.current().title end

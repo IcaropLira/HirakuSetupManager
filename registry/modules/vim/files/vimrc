@@ -263,6 +263,10 @@ if HirakuPlugin('coc')
     silent! packadd! coc.nvim
 endif
 
+" Extras ligados na aba Descobrir do app (baixados sob demanda).
+source ~/.vim/config/discover.vim
+call HirakuApplyDiscover()
+
 " A limpeza/restauração do terminal é feita pelo wrapper instalado em
 " ~/.local/bin/vim depois que o processo do Vim realmente termina.
 " Fazer OSC de reset durante VimLeavePre era justamente uma fonte de

@@ -3,6 +3,8 @@ id = "zoxide"
 name = "zoxide"
 description = "cd mais esperto (aprende suas pastas)"
 platforms = ["linux", "macos", "windows"]
+homepage = "https://github.com/ajeetdsouza/zoxide"
+discover = ["shell"]
 
 [[install]]
 when = { os = "linux", arch = "x86_64" }
