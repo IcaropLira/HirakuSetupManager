@@ -46,7 +46,12 @@ const EDITORS = [["Vim e Neovim", ["vim", "nvim"], "Os dois, com os mesmos atalh
 const UPDATES = [[21600, "A cada 6 horas", "Fica sempre em dia sem você lembrar."], [86400, "Uma vez por dia", "Recomendado: atualiza em segundo plano."], [null, "Só quando eu mandar", "Nada roda sozinho; use Sincronizar."]];
 const GLYPH = { kitty: "K", tmux: "T", vim: "V", nvim: "N", node: "⬢", jdk: "J", shell: "$", starship: "✦", eza: "≡", bat: "B", zoxide: "Z", fzf: "F", fastfetch: "ℹ", ripgrep: "R", "font-jetbrains-mono": "Aa", "icaro-themes": "❖", "dev-prereqs": "⚙" };
 
-const applogo = () => '<svg class="applogo" viewBox="0 0 100 100" aria-hidden="true"><path fill="url(#lgA)" fill-rule="evenodd" d="M50 3C74 3 93 24 93 50S74 97 50 97 7 76 7 50 26 3 50 3ZM50 10C64 10 73 28 73 50S64 90 50 90 27 72 27 50 36 10 50 10Z"/><path fill="none" style="stroke:color-mix(in srgb,var(--acc) 70%,#fff)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" d="M40 38 50 48 40 58"/><path style="stroke:color-mix(in srgb,var(--acc) 70%,#fff)" stroke-width="5.5" stroke-linecap="round" d="M53 59H62"/></svg>';
+const applogo = () => '<img class="applogo" src="logos/hsm.svg" alt="" draggable="false">';
+// Logos do projeto IcaroPintoLira (public/assets): uma por programa configurado.
+const LOGO = { kitty: "terminal", shell: "terminal", tmux: "tmux", nvim: "neovim", vim: "vim" };
+const tile = (m, cls = "") => LOGO[m.id]
+  ? `<span class="pj-tile logo ${cls}"><img src="logos/${LOGO[m.id]}.svg" alt="" draggable="false"></span>`
+  : `<span class="pj-tile ${cls}">${esc(GLYPH[m.id] || m.name[0].toUpperCase())}</span>`;
 
 // ------------------------------------------------------------------ util
 function toast(msg, kind = "", ms = 4200) {
@@ -189,7 +194,7 @@ function viewModules() {
     const opts = m.options.length ? `<button class="hx-btn ghost sm" data-goto="${m.id}">Opções</button>` : "";
     return `<article class="pj-card ${on ? "on" : ""} ${m.supported ? "" : "off"}">
       <label class="sw pj-sw" title="${on ? "Desabilitar" : "Habilitar"} no sync"><input type="checkbox" data-toggle="${m.id}" ${on ? "checked" : ""} ${m.supported ? "" : "disabled"}><i></i></label>
-      <div class="pj-top"><span class="pj-tile">${esc(GLYPH[m.id] || m.name[0].toUpperCase())}</span><div class="pj-main"><b>${esc(m.name)}</b><small>${m.requires.length ? "usa " + esc(m.requires.join(", ")) : esc(m.id)}</small></div></div>
+      <div class="pj-top">${tile(m)}<div class="pj-main"><b>${esc(m.name)}</b><small>${m.requires.length ? "usa " + esc(m.requires.join(", ")) : esc(m.id)}</small></div></div>
       <div class="pj-desc">${esc(m.description)}</div>
       <div class="pj-path">${r.installed ? `<b>${esc(r.installed)}</b>` : "não instalado"}${r.pin ? ` · <span class="tag acc">fixado ${esc(r.pin)}</span>` : ""}${st ? ` · <span title="${esc(last.error || last.detail || "")}">${st[0]} ${st[2]}</span>` : ""}</div>
       <div class="pj-act">${opts}<button class="hx-btn ghost sm" data-pin="${m.id}">${r.pin ? "Mudar versão fixada" : "Fixar versão"}</button>${on && r.installed ? `<button class="hx-btn ghost sm" data-apply="${m.id}">Aplicar agora</button>` : ""}</div></article>`;
@@ -240,7 +245,7 @@ function customHTML(mods, settings, opts = {}) {
     const off = !opts.wizard && !enabled(m.id) ? `<span class="tag">desabilitado</span>` : "";
     const live = !opts.wizard && ["vim", "nvim", "tmux"].includes(m.id)
       ? `<span class="tag acc" title="O ${esc(m.name)} aberto percebe a mudança e reaplica sozinho">aplica com ele aberto</span>` : "";
-    return `<section class="cz-sec glass" id="cz-${m.id}"><header><span class="pj-tile">${esc(GLYPH[m.id] || m.name[0])}</span><h3>${esc(m.name)}</h3>${live}${off}</header>
+    return `<section class="cz-sec glass" id="cz-${m.id}"><header>${tile(m)}<h3>${esc(m.name)}</h3>${live}${off}</header>
       ${hasTerm ? `<div class="termwrap"><div class="term" data-term="${m.id}"></div></div>` : ""}${groups}</section>`;
   }).filter(Boolean);
   if (!sections.length) return `<div class="hx-panel mut">Nenhum módulo escolhido tem opções.</div>`;
@@ -470,13 +475,52 @@ function liveChange(spec, value) {
   }, 150);
 }
 const CUSTOM_ORDER = ["kitty", "tmux", "nvim", "vim", "shell"];
-function viewCustom() {
+let CZ_MOD = null;   // programa aberto em Personalizar
+let CZ_SEC = {};     // seção aberta em cada programa
+let CZ_Q = "";       // busca dentro do programa
+function customMods() {
   const rank = id => { const i = CUSTOM_ORDER.indexOf(id); return i < 0 ? 99 : i; };
-  const mods = catalog().filter(m => m.supported && m.options.length).sort((a, b) => rank(a.id) - rank(b.id));
-  return `<div class="hx-wrap one"><div class="hx-main">
-    <section class="hx-hero sm"><div class="hx-logo">${applogo()}</div><div class="hx-hmain"><h2>Personalizar</h2><p class="mut">Mude e veja na hora. Cada mudança é gravada no settings.toml e aplicada só naquele módulo.</p>
-    <div class="hx-cta"><label class="sw"><input type="checkbox" id="live" ${UI.live ? "checked" : ""}><i></i></label><span>Aplicar ao vivo</span></div></div></section>
-    <div class="hx-sec">Opções</div>${customHTML(mods, SNAP.settings)}</div></div>`;
+  return catalog().filter(m => m.supported && m.options.length).sort((a, b) => rank(a.id) - rank(b.id));
+}
+const changedCount = m => m.options.filter(o => optValue(o, SNAP.settings) !== o.default).length;
+function viewCustom() {
+  const mods = customMods();
+  if (!mods.length) return `<div class="hx-wrap one"><div class="hx-panel mut">Nenhum módulo com opções.</div></div>`;
+  if (!mods.some(m => m.id === CZ_MOD)) CZ_MOD = mods[0].id;
+  const m = mods.find(x => x.id === CZ_MOD);
+  const rail = mods.map(x => {
+    const n = changedCount(x);
+    return `<button class="cz-item ${x.id === CZ_MOD ? "on" : ""}" data-czmod="${x.id}">${tile(x, "sm")}<span><b>${esc(x.name)}</b><small>${x.options.length} opções${n ? ` · <em>${n} alterada${n > 1 ? "s" : ""}</em>` : ""}</small></span></button>`;
+  }).join("");
+  const specs = sortedSpecs([m]);
+  const secs = sectionsOf(specs);
+  if (!secs.includes(CZ_SEC[m.id])) CZ_SEC[m.id] = secs[0];
+  const q = CZ_Q.trim().toLowerCase();
+  const shown = q
+    ? specs.filter(s => (specLabel(s) + " " + s.key + " " + (s.description || "")).toLowerCase().includes(q))
+    : specs.filter(s => (s.section || "") === CZ_SEC[m.id]);
+  const tabs = secs.length > 1 && !q ? `<div class="cz-tabs" role="tablist">${secs.map(sec => {
+    const n = specs.filter(s => (s.section || "") === sec && optValue(s, SNAP.settings) !== s.default).length;
+    return `<button role="tab" class="${sec === CZ_SEC[m.id] ? "on" : ""}" data-czsec="${esc(sec)}">${esc(sec || "Geral")}${n ? `<i>${n}</i>` : ""}</button>`;
+  }).join("")}</div>` : "";
+  const hasTerm = m.options.some(o => o.key === "palette") && m.options.some(o => o.key === "opacity");
+  const live = ["vim", "nvim", "tmux", "kitty"].includes(m.id) ? `<span class="tag acc" title="O programa aberto percebe a mudança e reaplica sozinho">aplica com ele aberto</span>` : "";
+  const off = !enabled(m.id) ? `<span class="tag">desabilitado no sync</span>` : "";
+  const body = shown.length ? shown.map(s => optionRow(s, SNAP.settings)).join("")
+    : `<div class="mut" style="padding:18px 0">Nenhuma opção com “${esc(CZ_Q)}”.</div>`;
+  return `<div class="hx-wrap one"><div class="cz">
+    <aside class="cz-rail glass" aria-label="Programas">
+      <div class="cz-live"><label class="sw"><input type="checkbox" id="live" ${UI.live ? "checked" : ""}><i></i></label><span>Aplicar ao vivo</span></div>
+      ${rail}</aside>
+    <section class="cz-page">
+      <header class="cz-head glass">${tile(m, "lg")}<div class="cz-title"><h2>${esc(m.name)}</h2><p class="mut">${esc(m.description)}</p><div class="cz-tags">${live}${off}</div></div>
+        <input class="txt cz-search" id="czq" type="search" placeholder="Buscar em ${esc(m.name)}…" value="${esc(CZ_Q)}"></header>
+      ${tabs}
+      <div class="cz-sec glass" id="cz-${m.id}">
+        ${hasTerm && (!q && (CZ_SEC[m.id] || "") === secs[0]) ? `<div class="termwrap"><div class="term" data-term="${m.id}"></div></div>` : ""}
+        ${q ? `<div class="st-sec">Resultados em ${esc(m.name)}</div>` : ""}${body}
+      </div>
+    </section></div></div>`;
 }
 
 // ------------------------------------------------------------------ Conflitos
@@ -530,11 +574,13 @@ function viewUpdates() {
 function bindView() {
   const v = $("#view");
   v.onclick = async e => {
-    const t = e.target.closest("[data-v],[data-act],[data-goto],[data-filter],[data-pin],[data-apply],[data-cf],[data-resolve],[data-every]");
+    const t = e.target.closest("[data-v],[data-act],[data-goto],[data-czmod],[data-czsec],[data-filter],[data-pin],[data-apply],[data-cf],[data-resolve],[data-every]");
     if (!t || !v.contains(t)) return;
     const d = t.dataset;
     if (d.v) return go(d.v);
-    if (d.goto) { VIEW = "custom"; render(); setTimeout(() => $(`#cz-${d.goto}`)?.scrollIntoView({ block: "start" }), 30); return; }
+    if (d.goto) { CZ_MOD = d.goto; CZ_Q = ""; return go("custom"); }
+    if (d.czmod) { CZ_MOD = d.czmod; CZ_Q = ""; render(); $("#view").scrollTop = 0; return; }
+    if (d.czsec !== undefined) { CZ_SEC[CZ_MOD] = d.czsec; render(); return; }
     if (d.filter) { MOD_FILTER = d.filter; return render(); }
     if (d.pin) return pinDialog(d.pin);
     if (d.apply) return runSync(d.apply);
@@ -547,6 +593,14 @@ function bindView() {
     }
     if ("every" in d) return setSchedule(d.every ? Number(d.every) : null);
     if (d.act) return action(d.act);
+  };
+  v.oninput = e => {
+    if (e.target.id !== "czq") return;
+    CZ_Q = e.target.value;
+    const pos = e.target.selectionStart;
+    render();
+    const q = $("#czq");
+    if (q) { q.focus(); q.setSelectionRange(pos, pos); }
   };
   v.onchange = async e => {
     const tg = e.target.closest("[data-toggle]");
@@ -728,14 +782,52 @@ function settingsOpen(tab) {
 // Automático: procura ao abrir e a cada 6 h, baixa em segundo plano e pergunta só
 // na hora de reiniciar (no Windows o instalador fecha o app, então nunca instala sem
 // você clicar).
-let APP_UPDATE = null; // {update, version, ready}
+let APP_UPDATE = null; // {update, version, ready} ou {manual: release do GitHub, version}
+const REPO = "IcaropLira/HirakuSetupManager";
+function isNewer(a, b) {
+  const p = v => String(v).replace(/^v/i, "").split(/[.+-]/).map(n => parseInt(n, 10) || 0);
+  const x = p(a), y = p(b);
+  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0);
+  return false;
+}
+async function latestRelease() {
+  const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { Accept: "application/vnd.github+json" } });
+  if (!r.ok) throw new Error(`o GitHub respondeu ${r.status}`);
+  return r.json();
+}
+// Sem latest.json (release publicada sem a assinatura do atualizador), o app não
+// consegue se instalar sozinho: confere a última release e oferece o download.
+async function manualCheck(manual) {
+  let rel;
+  try { rel = await latestRelease(); }
+  catch (e) { if (manual) fail("Não consegui verificar atualizações: " + e.message); return; }
+  if (!isNewer(rel.tag_name, INFO.version)) { if (manual) toast(`Você já está na versão mais nova (v${INFO.version}).`); return; }
+  APP_UPDATE = { manual: rel, version: rel.tag_name.replace(/^v/i, "") };
+  appUpdateBadge();
+  if (manual) manualUpdateDialog(); else toast(`Versão ${APP_UPDATE.version} disponível — veja no rodapé.`);
+}
+function manualUpdateDialog() {
+  const rel = APP_UPDATE.manual;
+  const want = { linux: [/\.deb$/, /\.rpm$/, /\.AppImage$/], macos: [/\.dmg$/], windows: [/-setup\.exe$/, /\.msi$/] }[INFO.os] || [];
+  const kind = n => /\.deb$/.test(n) ? "Ubuntu / Debian (.deb)" : /\.rpm$/.test(n) ? "Fedora (.rpm)" : /\.AppImage$/.test(n) ? "Qualquer Linux (.AppImage)"
+    : /\.dmg$/.test(n) ? "macOS (.dmg)" : /\.exe$/.test(n) ? "Windows (instalador .exe)" : /\.msi$/.test(n) ? "Windows (.msi)" : n;
+  const assets = (rel.assets || []).filter(a => want.some(r => r.test(a.name)));
+  const p = modal(`<div class="st-head"><h2>Versão ${esc(APP_UPDATE.version)} disponível</h2><button class="x" data-x>✕</button></div>
+    <div class="st-pad"><p style="margin-top:0">Você tem a ${esc(INFO.version)}. Esta versão ainda não se instala sozinha: baixe o instalador e abra — suas configurações continuam.</p>
+    <div class="dl-list">${assets.map(a => `<button class="radio" data-url="${esc(a.browser_download_url)}"><i></i>${esc(kind(a.name))}<span class="mut">${(a.size / 1048576).toFixed(1)} MB</span></button>`).join("") || '<p class="mut">Nenhum instalador para este sistema nessa release.</p>'}</div>
+    ${INFO.os === "linux" ? '<p class="mut" style="font-size:12px">Instalou pelo repositório do dnf? Então é só <code>sudo dnf upgrade hiraku-setup-manager</code>.</p>' : ""}
+    <div class="hx-cta" style="justify-content:flex-end"><button class="hx-btn ghost" data-url="${esc(rel.html_url)}">Ver a release</button><button class="hx-btn" data-x>Fechar</button></div></div>`, "small");
+  $$("[data-x]", p).forEach(b => b.onclick = closeModal);
+  $$("[data-url]", p).forEach(b => b.onclick = () => call("open_url", { url: b.dataset.url }).then(() => toast("Abrindo no navegador…")).catch(fail));
+}
 async function checkAppUpdate(manual) {
   const U = T && T.updater;
   if (!U) { if (manual) toast("A atualização do app só funciona no app instalado."); return; }
+  if (APP_UPDATE && APP_UPDATE.manual) return manual ? manualUpdateDialog() : undefined;
   if (APP_UPDATE && APP_UPDATE.ready) return appUpdateReady();
   let up;
   try { up = await U.check(); }
-  catch (e) { if (manual) fail("Não consegui verificar: " + e); return; }
+  catch (e) { return manualCheck(manual); }
   if (!up) { if (manual) toast("Você já está na versão mais nova."); return; }
   APP_UPDATE = { update: up, version: up.version, ready: false };
   if (!manual && UI.autoApp !== false) {
@@ -751,7 +843,7 @@ async function checkAppUpdate(manual) {
 }
 function appUpdateBadge() {
   const a = $("#chkup");
-  a.textContent = `Reiniciar para atualizar (v${APP_UPDATE.version})`;
+  a.textContent = APP_UPDATE.manual ? `Baixar a v${APP_UPDATE.version}` : `Reiniciar para atualizar (v${APP_UPDATE.version})`;
   a.classList.add("upready");
 }
 function appUpdateReady() {
@@ -979,6 +1071,7 @@ const MOCK = {
       case "sudo_auth": return null;
       case "refresh_registry": return null;
       case "open_config_dir": return null;
+      case "open_url": this.opened = a.url; return null;
       case "start_sync": {
         const mods = a.only ? [a.only] : s.modules;
         let i = 0;

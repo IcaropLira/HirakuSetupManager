@@ -91,7 +91,12 @@ fn save_settings(state: State<AppState>, settings: Settings) -> Res<()> {
 }
 
 #[tauri::command]
-fn set_option(state: State<AppState>, module: String, key: String, value: Option<String>) -> Res<()> {
+fn set_option(
+    state: State<AppState>,
+    module: String,
+    key: String,
+    value: Option<String>,
+) -> Res<()> {
     services(&state)?.set_option(&module, &key, value.as_deref())
 }
 
@@ -201,7 +206,11 @@ struct SyncDone {
 fn line_of(event: &CoreEvent) -> SyncLine {
     let (module, kind, done, total) = match event {
         CoreEvent::Started { module, .. } => (module, "started", None, None),
-        CoreEvent::Progress { module, done, total } => (module, "progress", Some(*done), *total),
+        CoreEvent::Progress {
+            module,
+            done,
+            total,
+        } => (module, "progress", Some(*done), *total),
         CoreEvent::Log { module, .. } => (module, "log", None, None),
         CoreEvent::Skipped { module, .. } => (module, "skipped", None, None),
         CoreEvent::Conflict { module, .. } => (module, "conflict", None, None),
@@ -276,7 +285,9 @@ fn start_sync(app: AppHandle, state: State<AppState>, only: Option<String>) -> R
                 }
                 Ok(WorkerMsg::Done(result)) => break result,
                 Err(RecvTimeoutError::Timeout) => continue,
-                Err(RecvTimeoutError::Disconnected) => break Err("o sync terminou inesperadamente".to_string()),
+                Err(RecvTimeoutError::Disconnected) => {
+                    break Err("o sync terminou inesperadamente".to_string())
+                }
             }
         };
         let state = app.state::<AppState>();
@@ -335,6 +346,30 @@ fn open_config_dir(state: State<AppState>) -> Res<()> {
         .map_err(|e| format!("não consegui abrir {}: {e}", dir.display()))
 }
 
+/// Abre no navegador uma página/arquivo das releases deste app (download manual
+/// quando a release não tem atualização automática). Só aceita este repositório.
+#[tauri::command]
+fn open_url(state: State<AppState>, url: String) -> Res<()> {
+    const ALLOWED: &str = "https://github.com/IcaropLira/HirakuSetupManager/";
+    if !url.starts_with(ALLOWED) || url.contains(char::is_whitespace) {
+        return Err("endereço não permitido".to_string());
+    }
+    let os = services(&state)?.env.os;
+    let mut cmd = match os {
+        hiraku_core::Os::Macos => std::process::Command::new("open"),
+        hiraku_core::Os::Windows => {
+            let mut c = std::process::Command::new("rundll32");
+            c.arg("url.dll,FileProtocolHandler");
+            c
+        }
+        _ => std::process::Command::new("xdg-open"),
+    };
+    cmd.arg(&url)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("não consegui abrir o navegador: {e}"))
+}
+
 fn main() -> ExitCode {
     // Com argumentos (ex.: `sync --unattended` do agendador): vira o CLI.
     let args: Vec<String> = std::env::args()
@@ -379,6 +414,7 @@ fn main() -> ExitCode {
             refresh_registry,
             resolve_dependencies,
             open_config_dir,
+            open_url,
         ])
         .run(tauri::generate_context!());
     match result {

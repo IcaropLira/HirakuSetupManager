@@ -49,7 +49,7 @@ header.topbar{display:flex;flex-wrap:wrap;align-items:center;gap:16px;row-gap:10
 
 .brand{display:flex;align-items:center;gap:10px}
 .brand-mark{width:38px;height:38px;padding:0;border:0;background:none;cursor:pointer}
-.applogo{width:100%;height:100%;display:block;filter:drop-shadow(0 3px 8px color-mix(in srgb,var(--acc) 45%,transparent))}
+.applogo{width:100%;height:100%;display:block;object-fit:contain;filter:drop-shadow(0 4px 10px color-mix(in srgb,#e2639a 40%,transparent))}
 .brand-txt h1{margin:0;font:700 17px var(--serif)}
 .badge{font-size:11px;color:var(--mut)}
 
@@ -307,3 +307,36 @@ select.txt{font-family:var(--sans)}
 .km code,.st-lbl code{font:11px var(--mono);padding:0 4px;border-radius:4px;background:var(--bg)}
 .km .bar{margin:2px 0 0}
 .km select.txt{min-width:0}
+
+/* ---------- logos dos programas ---------- */
+.pj-tile.logo{background:#1a1230;padding:5px;box-sizing:border-box;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.pj-tile.logo img{width:100%;height:100%;object-fit:contain;display:block}
+.pj-card:not(.on) .pj-tile.logo{background:#1a1230;filter:grayscale(.6) opacity(.75)}
+.pj-tile.sm{width:34px;height:34px;border-radius:10px;font-size:15px}
+.pj-tile.lg{width:64px;height:64px;border-radius:18px;font-size:28px;padding:8px}
+
+/* ---------- Personalizar: uma página por programa ---------- */
+.cz{grid-template-columns:240px minmax(0,1fr)}
+.cz-rail{gap:4px;padding:10px}
+.cz-live{display:flex;align-items:center;gap:10px;padding:6px 8px 12px;margin-bottom:4px;border-bottom:1px solid var(--ln);font-size:13px}
+.cz-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px;border:1px solid transparent;border-radius:12px;background:none;cursor:pointer;color:var(--ink)}
+.cz-item:hover{background:var(--bg)}
+.cz-item.on{background:color-mix(in srgb,var(--acc) 10%,var(--pn));border-color:color-mix(in srgb,var(--acc) 45%,var(--ln))}
+.cz-item b{display:block;font-size:14px}.cz-item small{display:block;font-size:11px;color:var(--mut)}
+.cz-item em{font-style:normal;color:var(--acc)}
+.cz-page{min-width:0;display:flex;flex-direction:column;gap:12px}
+.cz-head{display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:18px;
+ background:radial-gradient(120% 160% at 100% 0%,color-mix(in srgb,var(--acc) 22%,transparent),transparent 60%),color-mix(in srgb,var(--pn) 90%,transparent)}
+.cz-title{flex:1;min-width:0}.cz-title h2{margin:0;font:700 24px var(--serif)}.cz-title p{margin:2px 0 0;font-size:13px}
+.cz-tags{display:flex;gap:6px;margin-top:6px}
+.cz-search{width:220px}
+.cz-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;border:1px solid var(--ln);border-radius:12px;background:var(--bg);align-self:flex-start}
+.cz-tabs button{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--mut);background:none;border:1px solid transparent;border-radius:9px;padding:6px 12px;cursor:pointer}
+.cz-tabs button:hover{color:var(--ink)}
+.cz-tabs button.on{color:var(--ink);background:var(--pn);border-color:var(--ln);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.cz-tabs i{font-style:normal;font-size:10px;min-width:16px;height:16px;display:inline-grid;place-items:center;border-radius:8px;color:var(--acc-ink);background:var(--acc)}
+.cz-page .cz-sec{margin:0}
+.cz-page .cz-sec>.st-row:first-child,.cz-page .cz-sec>.st-sec:first-child{margin-top:0}
+@media (max-width:1100px){.cz{grid-template-columns:1fr}.cz-rail{flex-direction:row;flex-wrap:wrap}.cz-item{width:auto}.cz-live{width:100%}.cz-search{width:160px}}
+.dl-list{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.dl-list .radio span{margin-left:auto;font-size:12px}
