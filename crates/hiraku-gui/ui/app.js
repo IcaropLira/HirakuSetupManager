@@ -287,7 +287,7 @@ function optionRow(spec, settings) {
       return `<div class="st-row">${lbl}<div class="colorpick"><input type="color" value="${esc(v)}" data-color="${id}"><input class="txt" value="${esc(v)}" data-colortext="${id}" maxlength="7" spellcheck="false"></div></div>`;
     case "lines": {
       const presets = spec.module === "tmux" ? `<div class="bar presets">${TMUX_PRESETS.map(([t], i) => `<button class="chip" data-lines-preset="${id}" data-i="${i}">+ ${esc(t)}</button>`).join("")}</div>` : "";
-      return `<div class="st-row col">${lbl}${presets}<textarea class="code-edit" rows="${Math.min(14, Math.max(4, v.split("\n").length + 1))}" data-lines="${id}" spellcheck="false" placeholder="${spec.module === "tmux" ? "bind -n M-z resize-pane -Z" : spec.module === "nvim" ? "vim.opt.spelllang = 'pt_br'" : "set spelllang=pt_br"}">${esc(v)}</textarea><small class="mut">Grava ao sair do campo.</small></div>`;
+      return `<div class="st-row col">${lbl}${presets}<textarea class="code-edit" rows="${Math.min(spec.key.startsWith("template_") ? 24 : 14, Math.max(4, v.split("\n").length + 1))}" data-lines="${id}" spellcheck="false" placeholder="${spec.key.startsWith("template_") ? "(sem template: o arquivo novo começa vazio)" : spec.module === "tmux" ? "bind -n M-z resize-pane -Z" : spec.module === "nvim" ? "vim.opt.spelllang = 'pt_br'" : "set spelllang=pt_br"}">${esc(v)}</textarea><small class="mut">Grava ao sair do campo.</small></div>`;
     }
     case "keymaps":
       return `<div class="st-row col">${lbl}${keymapsEditor(id, v)}</div>`;

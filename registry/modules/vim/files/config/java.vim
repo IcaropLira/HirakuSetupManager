@@ -21,25 +21,11 @@ function! s:IsCpFile(basename) abort
 endfunction
 
 function! InsertJavaTemplate() abort
-    let l:basename = expand('%:t:r')
-
-    if s:IsCpFile(l:basename)
-        let l:template = expand('~/.vim/templates/java_cp.java')
-        if filereadable(l:template)
-            execute '0r ' . l:template
-        endif
+    if s:IsCpFile(expand('%:t:r'))
+        call IcaroInsertTemplate('java_cp', '~/.vim/templates/java_cp.java')
     else
-        let l:template = expand('~/.vim/templates/java_main.java')
-        if filereadable(l:template)
-            execute '0r ' . l:template
-            " Substitui o placeholder pelo nome real da classe (igual ao arquivo)
-            silent! execute '%s/__CLASSNAME__/' . escape(l:basename, '/&') . '/g'
-        endif
+        call IcaroInsertTemplate('java_main', '~/.vim/templates/java_main.java')
     endif
-
-    " remove a linha em branco deixada pelo :r no topo
-    silent! execute '$'
-    normal! gg
 endfunction
 
 augroup java_template
@@ -97,16 +83,6 @@ function! TestJava() abort
                 \ ' && java -cp ' . shellescape(l:dir) . ' ' . l:class . ' < input.txt'
     call IcaroRunInTerminal(l:cmd)
 endfunction
+" As teclas (F5-F8 por padrão) são globais e configuráveis no app:
+" veja IcaroAction() em config/keymaps.vim.
 
-" Atalhos locais só dentro de arquivos .java (não conflita com C++)
-augroup java_keymaps
-    autocmd!
-    autocmd FileType java nnoremap <buffer> <F5> :call CompileJava()<CR>
-    autocmd FileType java nnoremap <buffer> <F6> :call RunJava()<CR>
-    autocmd FileType java nnoremap <buffer> <F7> :call BuildRunJava()<CR>
-    autocmd FileType java nnoremap <buffer> <F8> :call TestJava()<CR>
-    autocmd FileType java inoremap <silent><buffer> <F5> <C-o>:call CompileJava()<CR>
-    autocmd FileType java inoremap <silent><buffer> <F6> <C-o>:call RunJava()<CR>
-    autocmd FileType java inoremap <silent><buffer> <F7> <C-o>:call BuildRunJava()<CR>
-    autocmd FileType java inoremap <silent><buffer> <F8> <C-o>:call TestJava()<CR>
-augroup END

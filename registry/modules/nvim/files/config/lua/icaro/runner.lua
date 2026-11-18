@@ -129,38 +129,44 @@ function M.terminal()
   vim.cmd.startinsert()
 end
 
--- templates de arquivo novo (.cpp / .java)
+-- templates de arquivo novo: o do app (template_<lang> no hiraku.json) ou, sem ele,
+-- o arquivo padrão. __CLASSNAME__ vira o nome do arquivo; __CURSOR__ marca o cursor.
 function M.setup_templates()
-  local paths = require("icaro.paths")
-  local dir = paths.template_dir
-  if not dir then return end
-  local function read(name)
-    local f = dir .. "/" .. name
-    if vim.fn.filereadable(f) == 1 then return vim.fn.readfile(f) end
+  local dir = require("icaro.paths").template_dir
+  local function file(name)
+    local f = dir and (dir .. "/" .. name)
+    if f and vim.fn.filereadable(f) == 1 then return vim.fn.readfile(f) end
   end
+  local KINDS = { cpp = { "cpp", "cpp.cpp" }, c = { "c" }, py = { "python" } }
   vim.api.nvim_create_autocmd("BufNewFile", {
     group = vim.api.nvim_create_augroup("icaro_templates", { clear = true }),
-    pattern = { "*.cpp", "*.java" },
+    pattern = { "*.cpp", "*.c", "*.py", "*.java" },
     callback = function(ev)
       local ext = ev.file:match("%.(%w+)$")
-      local lines
-      if ext == "cpp" then
-        lines = read("cpp.cpp")
+      local base = vim.fn.fnamemodify(ev.file, ":t:r")
+      local key, fallback
+      if ext == "java" then
+        if base:match("_cp$") then key, fallback = "java_cp", "java_cp.java" else key, fallback = "java_main", "java_main.java" end
+      elseif KINDS[ext] then
+        key, fallback = KINDS[ext][1], KINDS[ext][2]
       else
-        local base = vim.fn.fnamemodify(ev.file, ":t:r")
-        if base:match("_cp$") then
-          lines = read("java_cp.java")
-        else
-          lines = read("java_main.java")
-          if lines then
-            for i, l in ipairs(lines) do lines[i] = l:gsub("__CLASSNAME__", base) end
-          end
+        return
+      end
+      local lines = require("icaro.hiraku").template(key)
+      if lines == nil then lines = fallback and file(fallback) end
+      if not lines or (#lines == 1 and lines[1]:match("^%s*$")) or #lines == 0 then return end
+      local row, col, found = 1, 0, false
+      for i, l in ipairs(lines) do
+        l = l:gsub("__CLASSNAME__", (base:gsub("%%", "%%%%")))
+        local c = l:find("__CURSOR__", 1, true)
+        if c and not found then
+          row, col, found = i, c - 1, true
+          l = l:gsub("__CURSOR__", "", 1)
         end
+        lines[i] = l
       end
-      if lines then
-        vim.api.nvim_buf_set_lines(ev.buf, 0, -1, false, lines)
-        vim.api.nvim_win_set_cursor(0, { 1, 0 })
-      end
+      vim.api.nvim_buf_set_lines(ev.buf, 0, -1, false, lines)
+      pcall(vim.api.nvim_win_set_cursor, 0, { row, col })
     end,
   })
 end

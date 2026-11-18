@@ -39,10 +39,16 @@ M.load()
 
 -- ---------------------------------------------------------------- Central <-> app
 -- Chaves do icaro/state.lua (Central) que correspondem a opções do app.
+-- Toggles da Central (icaro/toggles.lua) -> opção do app.
+local TOGGLE_KEYS = { inlay = "inlay", matchparen = "matchparen", header = "header", hints = "hints",
+  diag = "diagnostics", lsp_progress = "lsp_progress" }
+local AC_LANGS = { "cpp", "java", "python", "outros" }
+
 local function hub_key(state_key)
   if state_key == "theme" then return "colorscheme" end
   if state_key == "pairs" then return "autopairs" end
   if state_key == "nerd_font" then return "nerd_font" end
+  if TOGGLE_KEYS[state_key] then return TOGGLE_KEYS[state_key] end
   local opt = state_key:match("^option_(.+)$")
   if opt then return opt end
   if state_key:match("^plugin_") then return state_key end
@@ -50,6 +56,14 @@ end
 
 --- Valor do app para uma chave do state.lua, ou nil se o app não define.
 function M.from_state(state_key)
+  if state_key == "ac" then
+    -- autocomplete por linguagem: { cpp = bool, ... } montado das autocomplete_<lang>
+    local t, any = {}, false
+    for _, l in ipairs(AC_LANGS) do
+      if M.has("autocomplete_" .. l) then t[l] = M.data["autocomplete_" .. l]; any = true end
+    end
+    return any and t or nil
+  end
   local k = hub_key(state_key)
   if not k or not M.has(k) then return nil end
   local v = M.data[k]
@@ -90,7 +104,13 @@ end
 
 --- A Central mudou algo: grava no app também (em segundo plano).
 function M.from_central(state_key, value)
-  local k = hub_key(state_key)
+  if state_key == "ac" and type(value) == "table" then
+    for _, l in ipairs(AC_LANGS) do
+      if value[l] ~= nil then M.from_central("ac_" .. l, value[l] ~= false) end
+    end
+    return
+  end
+  local k = state_key:match("^ac_") and ("autocomplete_" .. state_key:sub(4)) or hub_key(state_key)
   if not k or not M.has(k) then return end
   if k == "colorcolumn" and value == "" then value = "0" end
   if M.data[k] == value then return end
@@ -115,6 +135,7 @@ function M.leader()
 end
 
 local BOOLS = { "number", "relativenumber", "cursorline", "cursorcolumn", "list", "wrap", "linebreak",
+  "spell", "showmode", "smartindent", "autoindent", "backup", "writebackup",
   "expandtab", "undofile", "swapfile", "confirm", "splitright", "splitbelow", "ignorecase", "smartcase",
   "hlsearch", "incsearch" }
 
@@ -156,6 +177,9 @@ end
 
 function M.apply_keymaps()
   unmap_all()
+  -- teclas de função (key_<ação>): antes dos "Meus atalhos", que valem por cima
+  local ok, actions = pcall(require, "icaro.actions")
+  if ok and next(actions.current) ~= nil then actions.apply() end
   local nx = { "n", "x" }
   local mode = M.get("delete_mode", "copy")
   if mode == "blackhole" then
@@ -213,6 +237,36 @@ function M.apply_autopairs()
   if ok and toggles.s and toggles.s.pairs ~= M.get("autopairs") then toggles.autopairs() end
 end
 
+--- Central: com o editor aberto, aciona o toggle quando o app discorda.
+function M.apply_toggles()
+  local ok, t = pcall(require, "icaro.toggles")
+  if not ok or not t.s then return end
+  local function sync(key, current, fn)
+    if M.has(key) and (current and true or false) ~= (M.data[key] and true or false) then pcall(t[fn]) end
+  end
+  sync("inlay", t.s.inlay, "inlay")
+  sync("matchparen", t.s.matchparen, "matchparen")
+  sync("header", t.s.header, "header")
+  sync("hints", t.s.hints, "hints")
+  sync("diagnostics", t.s.diag, "diagnostics")
+  sync("lsp_progress", vim.g.icaro_lsp_progress, "lsp_progress")
+  for _, l in ipairs(AC_LANGS) do
+    local k = "autocomplete_" .. l
+    if M.has(k) and t.set_ac then t.set_ac(l, M.data[k]) end
+  end
+end
+
+--- Template de arquivo novo do app (template_<lang>), ou nil se o app não define.
+function M.template(key)
+  local k = "template_" .. key
+  if not M.has(k) then return nil end
+  local text = M.data[k]
+  if type(text) ~= "string" then return nil end
+  local lines = vim.split(text, "\n", { plain = true })
+  if #lines > 1 and lines[#lines] == "" then table.remove(lines) end
+  return lines
+end
+
 function M.apply_extra()
   local code = M.get("extra", "")
   if type(code) ~= "string" or code:match("^%s*$") then return end
@@ -230,6 +284,7 @@ function M.apply_all()
   M.apply_keymaps()
   M.apply_theme()
   M.apply_autopairs()
+  M.apply_toggles()
   M.apply_extra()
 end
 

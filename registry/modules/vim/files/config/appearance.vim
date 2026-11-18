@@ -124,6 +124,7 @@ function! ToggleHeader() abort
         call writefile([g:icaro_header_hidden ? '1' : '0'], expand('~/.vim/.icaro_header_state'))
     catch /.*/
     endtry
+    call HirakuToApp('header', g:icaro_header_hidden ? v:false : v:true)
     redraw!
 endfunction
 
@@ -147,6 +148,7 @@ function! ToggleMatchParen() abort
         call writefile([g:icaro_matchparen_enabled ? '1' : '0'], expand('~/.vim/.icaro_matchparen_state'))
     catch /.*/
     endtry
+    call HirakuToApp('matchparen', g:icaro_matchparen_enabled ? v:true : v:false)
     redrawstatus!
 endfunction
 

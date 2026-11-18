@@ -1,8 +1,10 @@
 " ============================================================
 " o_do_lol.vim — colorscheme "o do LOL" (Configuracao Vim Icaro Lira)
-" Fundo berinjela do terminal do Ubuntu, texto creme, linha do cursor
-" cor de tijolo e palavras-chave em negrito: quase monocromático.
+" Terminal de laboratório: fundo vinho-amarronzado, texto creme,
+" palavras-chave e tipos em negrito (sem mudar de cor), strings em
+" amarelo-claro, numeração amarelada e a linha do cursor cor de tijolo.
 " ============================================================
+
 set background=dark
 hi clear
 if exists('syntax_on')
@@ -11,200 +13,156 @@ endif
 let g:colors_name = 'o_do_lol'
 
 " ------------------------------------------------------------
-" Paleta
+" Paleta (o app usa estes nomes na pré-visualização)
 " ------------------------------------------------------------
-let s:bg0        = ['#300a24', 53]
-let s:bg1        = ['#3d1430', 53]
-let s:bg2        = ['#6a3a2e', 95]
-let s:bg3        = ['#7d4a5e', 96]
-let s:border     = ['#5a2a46', 54]
-let s:fg0        = ['#f5e6c8', 230]
-let s:fg1        = ['#e8cf98', 223]
-let s:comment    = ['#c9a98c', 180]
+let s:bg0     = ['#2b1a1e', 234]
+let s:bg1     = ['#36222a', 235]
+let s:bg2     = ['#4a2e26', 52]
+let s:bg3     = ['#5e3a44', 95]
+let s:fg0     = ['#f0dfc4', 223]
+let s:fg1     = ['#fbf0d6', 230]
+let s:comment = ['#d9c7a8', 187]
+let s:keyword = ['#fbf0d6', 230]
+let s:red     = ['#fbf0d6', 230]
+let s:string  = ['#ece3a0', 229]
+let s:green   = ['#ece3a0', 229]
+let s:amber   = ['#ece3a0', 229]
+let s:func    = ['#f0dfc4', 223]
+let s:blue    = ['#f0dfc4', 223]
+let s:linenr  = ['#e6c48e', 180]
+let s:curnr   = ['#f6dc9c', 222]
+let s:tilde   = ['#6e6370', 242]
+let s:status  = ['#cdc8c2', 251]
+let s:statusnc = ['#8d8580', 245]
+let s:dark    = ['#1c1114', 233]
+let s:err     = ['#e8806e', 174]
+let s:warn    = ['#e8c06e', 179]
+let s:info    = ['#b8c8a0', 151]
+let s:visual  = ['#5c3b46', 95]
+let s:search  = ['#e6c48e', 180]
 
-let s:red        = ['#f5e6c8', 230]
-let s:red_bright = ['#fff4de', 230]
-let s:red_dim    = ['#7a3048', 89]
-let s:red_soft   = ['#f0d6a6', 223]
-
-let s:green      = ['#f4c896', 222]
-let s:amber      = ['#f6b98a', 216]
-let s:blue       = ['#fbe3b8', 223]
-let s:cyan       = ['#e9d2b0', 223]
-let s:orange     = ['#fbecd2', 230]
-" ------------------------------------------------------------
 function! s:hi(group, fg, bg, style) abort
     let l:cmd = 'hi ' . a:group
-    if !empty(a:fg)
-        let l:cmd .= ' guifg=' . a:fg[0] . ' ctermfg=' . a:fg[1]
-    else
-        let l:cmd .= ' guifg=NONE ctermfg=NONE'
-    endif
-    if !empty(a:bg)
-        let l:cmd .= ' guibg=' . a:bg[0] . ' ctermbg=' . a:bg[1]
-    else
-        let l:cmd .= ' guibg=NONE ctermbg=NONE'
-    endif
-    if !empty(a:style)
-        let l:cmd .= ' gui=' . a:style . ' cterm=' . a:style
-    else
-        let l:cmd .= ' gui=NONE cterm=NONE'
-    endif
+    let l:cmd .= empty(a:fg) ? ' guifg=NONE ctermfg=NONE' : ' guifg=' . a:fg[0] . ' ctermfg=' . a:fg[1]
+    let l:cmd .= empty(a:bg) ? ' guibg=NONE ctermbg=NONE' : ' guibg=' . a:bg[0] . ' ctermbg=' . a:bg[1]
+    let l:cmd .= empty(a:style) ? ' gui=NONE cterm=NONE' : ' gui=' . a:style . ' cterm=' . a:style
     execute l:cmd
 endfunction
 
 " ------------------------------------------------------------
-" UI base
+" Interface
 " ------------------------------------------------------------
 call s:hi('Normal',        s:fg0, s:bg0, '')
 call s:hi('NormalNC',      s:fg0, s:bg0, '')
-call s:hi('NonText',       s:fg1, s:bg0, '')
-call s:hi('EndOfBuffer',   s:bg1, s:bg0, '')
-call s:hi('Cursor',        s:bg0, s:red_bright, '')
+call s:hi('NormalFloat',   s:fg0, s:bg1, '')
+call s:hi('FloatBorder',   s:linenr, s:bg1, '')
+call s:hi('NonText',       s:tilde, [], '')
+call s:hi('EndOfBuffer',   s:tilde, [], '')
+call s:hi('Cursor',        s:dark, s:curnr, '')
 call s:hi('CursorLine',    [], s:bg2, 'NONE')
 call s:hi('CursorColumn',  [], s:bg2, 'NONE')
-call s:hi('ColorColumn',   [], s:bg2, 'NONE')
-call s:hi('LineNr',        s:fg1, s:bg0, '')
-call s:hi('CursorLineNr',  s:red_bright, s:bg0, 'bold')
-call s:hi('SignColumn',    s:fg1, s:bg0, '')
-call s:hi('FoldColumn',    s:fg1, s:bg1, '')
-call s:hi('Folded',        s:fg1, s:bg1, 'italic')
-call s:hi('VertSplit',     s:border, s:bg0, '')
-call s:hi('WinSeparator',  s:border, s:bg0, '')
-call s:hi('StatusLine',    s:bg0, ['#d9d4cc', 252], 'bold')
-call s:hi('StatusLineNC',  s:bg0, ['#a89f96', 247], '')
-call s:hi('TabLine',       s:fg1, s:bg1, '')
-call s:hi('TabLineFill',   s:fg1, s:bg0, '')
-call s:hi('TabLineSel',    s:bg0, s:red, 'bold')
-call s:hi('WinBar',        s:red_soft, s:bg1, 'bold')
-call s:hi('WinBarNC',      s:fg1, s:bg0, '')
-call s:hi('Visual',        [], s:bg3, '')
-call s:hi('VisualNOS',     [], s:bg3, '')
-call s:hi('Search',        s:bg0, s:amber, 'bold')
-call s:hi('IncSearch',     s:bg0, s:red_bright, 'bold')
-call s:hi('CurSearch',     s:bg0, s:red_bright, 'bold')
-call s:hi('MatchParen',    s:fg0, s:red_dim, 'bold')
-call s:hi('Directory',     s:cyan, [], '')
-call s:hi('Title',         s:red_bright, [], 'bold')
-call s:hi('ModeMsg',       s:red_bright, [], 'bold')
-call s:hi('MoreMsg',       s:green, [], '')
-call s:hi('Question',      s:amber, [], '')
-call s:hi('WarningMsg',    s:amber, [], 'bold')
-call s:hi('ErrorMsg',      s:fg0, s:red_dim, 'bold')
-call s:hi('WildMenu',      s:bg0, s:red, 'bold')
-call s:hi('Pmenu',         s:fg0, s:bg2, '')
-call s:hi('PmenuSel',      s:fg0, s:red_dim, 'bold')
-call s:hi('PmenuMatch',    s:amber, s:bg2, 'bold')
-call s:hi('PmenuMatchSel', s:amber, s:red_dim, 'bold')
-call s:hi('PmenuSbar',     [], s:bg2, '')
-call s:hi('PmenuThumb',    [], s:red_dim, '')
-call s:hi('SpecialKey',    s:fg1, [], '')
-call s:hi('Whitespace',    s:border, [], '')
+call s:hi('ColorColumn',   [], s:bg1, 'NONE')
+call s:hi('LineNr',        s:linenr, [], '')
+call s:hi('CursorLineNr',  s:curnr, s:bg2, 'bold')
+call s:hi('SignColumn',    s:linenr, [], '')
+call s:hi('FoldColumn',    s:linenr, [], '')
+call s:hi('Folded',        s:comment, s:bg1, '')
+call s:hi('VertSplit',     s:statusnc, [], '')
+call s:hi('WinSeparator',  s:statusnc, [], '')
+call s:hi('StatusLine',    s:dark, s:status, 'bold')
+call s:hi('StatusLineNC',  s:dark, s:statusnc, '')
+call s:hi('TabLine',       s:dark, s:statusnc, '')
+call s:hi('TabLineFill',   [], s:bg1, '')
+call s:hi('TabLineSel',    s:dark, s:status, 'bold')
+call s:hi('WinBar',        s:fg1, [], 'bold')
+call s:hi('WinBarNC',      s:comment, [], '')
+call s:hi('Visual',        [], s:visual, '')
+call s:hi('VisualNOS',     [], s:visual, '')
+call s:hi('Search',        s:dark, s:search, '')
+call s:hi('IncSearch',     s:dark, s:curnr, 'bold')
+call s:hi('CurSearch',     s:dark, s:curnr, 'bold')
+call s:hi('MatchParen',    s:curnr, s:bg3, 'bold')
+call s:hi('Directory',     s:fg1, [], 'bold')
+call s:hi('Title',         s:fg1, [], 'bold')
+call s:hi('ModeMsg',       s:fg1, [], 'bold')
+call s:hi('MoreMsg',       s:info, [], 'bold')
+call s:hi('Question',      s:info, [], 'bold')
+call s:hi('WarningMsg',    s:warn, [], 'bold')
+call s:hi('ErrorMsg',      s:fg1, s:err, 'bold')
+call s:hi('WildMenu',      s:dark, s:status, 'bold')
+call s:hi('Pmenu',         s:fg0, s:bg1, '')
+call s:hi('PmenuSel',      s:dark, s:status, 'bold')
+call s:hi('PmenuSbar',     [], s:bg1, '')
+call s:hi('PmenuThumb',    [], s:statusnc, '')
+call s:hi('SpecialKey',    s:tilde, [], '')
+call s:hi('Whitespace',    s:tilde, [], '')
+call s:hi('DiffAdd',       s:info, s:bg1, '')
+call s:hi('DiffChange',    s:warn, s:bg1, '')
+call s:hi('DiffDelete',    s:err, s:bg1, '')
+call s:hi('DiffText',      s:dark, s:warn, 'bold')
+call s:hi('SpellBad',      [], [], 'undercurl')
+call s:hi('SpellCap',      [], [], 'undercurl')
 
 " ------------------------------------------------------------
-" Diff
-" ------------------------------------------------------------
-call s:hi('DiffAdd',    s:green,  s:bg1, '')
-call s:hi('DiffChange', s:amber,  s:bg1, '')
-call s:hi('DiffDelete', s:red_dim, s:bg1, '')
-call s:hi('DiffText',   s:bg0, s:red, 'bold')
-
-" ------------------------------------------------------------
-" Sintaxe (código com cores variadas, para legibilidade)
+" Código: quase tudo creme; o que muda é o negrito e as strings
 " ------------------------------------------------------------
 call s:hi('Comment',       s:comment, [], '')
-call s:hi('Constant',      s:amber, [], '')
-call s:hi('String',        s:green, [], '')
-call s:hi('Character',     s:green, [], '')
-call s:hi('Number',        s:amber, [], '')
-call s:hi('Boolean',       s:amber, [], 'bold')
-call s:hi('Float',         s:amber, [], '')
+call s:hi('Constant',      s:string, [], '')
+call s:hi('String',        s:string, [], '')
+call s:hi('Character',     s:string, [], '')
+call s:hi('Number',        s:string, [], '')
+call s:hi('Boolean',       s:fg1, [], 'bold')
+call s:hi('Float',         s:string, [], '')
 call s:hi('Identifier',    s:fg0, [], '')
-call s:hi('Function',      s:orange, [], 'bold')
-call s:hi('Statement',     s:red_bright, [], 'bold')
-call s:hi('Conditional',   s:red_bright, [], 'bold')
-call s:hi('Repeat',        s:red_bright, [], 'bold')
-call s:hi('Label',         s:red_bright, [], '')
-call s:hi('Operator',      s:red, [], '')
-call s:hi('Keyword',       s:red_bright, [], 'bold')
-call s:hi('Exception',     s:red_bright, [], 'bold')
-call s:hi('PreProc',       s:red_soft, [], '')
-call s:hi('Include',       s:red_soft, [], '')
-call s:hi('Define',        s:red_soft, [], '')
-call s:hi('Macro',         s:red_soft, [], '')
-call s:hi('PreCondit',     s:red_soft, [], '')
-call s:hi('Type',          s:blue, [], 'bold')
-call s:hi('StorageClass',  s:blue, [], '')
-call s:hi('Structure',     s:blue, [], '')
-call s:hi('Typedef',       s:blue, [], '')
-call s:hi('Special',       s:red_soft, [], '')
-call s:hi('SpecialChar',   s:red_soft, [], '')
-call s:hi('Tag',           s:red_bright, [], '')
-call s:hi('Delimiter',     s:fg1, [], '')
-call s:hi('SpecialComment', s:comment, [], 'italic,bold')
-call s:hi('Debug',         s:red_dim, [], '')
-call s:hi('Underlined',    s:red_bright, [], 'underline')
-call s:hi('Ignore',        s:fg1, [], '')
-call s:hi('Error',         s:fg0, s:red_dim, 'bold')
-call s:hi('Todo',          s:bg0, s:amber, 'bold')
+call s:hi('Function',      s:fg0, [], '')
+call s:hi('Statement',     s:keyword, [], 'bold')
+call s:hi('Conditional',   s:keyword, [], 'bold')
+call s:hi('Repeat',        s:keyword, [], 'bold')
+call s:hi('Label',         s:keyword, [], 'bold')
+call s:hi('Operator',      s:fg0, [], '')
+call s:hi('Keyword',       s:keyword, [], 'bold')
+call s:hi('Exception',     s:keyword, [], 'bold')
+call s:hi('PreProc',       s:fg1, [], '')
+call s:hi('Include',       s:fg1, [], '')
+call s:hi('Define',        s:fg1, [], '')
+call s:hi('Macro',         s:fg1, [], '')
+call s:hi('PreCondit',     s:fg1, [], '')
+call s:hi('Type',          s:keyword, [], 'bold')
+call s:hi('StorageClass',  s:keyword, [], 'bold')
+call s:hi('Structure',     s:keyword, [], 'bold')
+call s:hi('Typedef',       s:keyword, [], 'bold')
+call s:hi('Special',       s:fg1, [], '')
+call s:hi('SpecialChar',   s:string, [], '')
+call s:hi('Tag',           s:fg1, [], '')
+call s:hi('Delimiter',     s:fg0, [], '')
+call s:hi('SpecialComment', s:comment, [], 'bold')
+call s:hi('Debug',         s:warn, [], '')
+call s:hi('Underlined',    s:fg1, [], 'underline')
+call s:hi('Ignore',        s:tilde, [], '')
+call s:hi('Error',         s:fg1, s:err, 'bold')
+call s:hi('Todo',          s:dark, s:curnr, 'bold')
 
 " ------------------------------------------------------------
-" coc.nvim / diagnósticos
+" coc.nvim / diagnósticos / NERDTree
 " ------------------------------------------------------------
-call s:hi('CocErrorSign',      s:red_bright, [], '')
-call s:hi('CocWarningSign',    s:amber, [], '')
-call s:hi('CocInfoSign',       s:cyan, [], '')
-call s:hi('CocHintSign',       s:fg1, [], '')
+call s:hi('CocErrorSign',      s:err, [], '')
+call s:hi('CocWarningSign',    s:warn, [], '')
+call s:hi('CocInfoSign',       s:info, [], '')
+call s:hi('CocHintSign',       s:comment, [], '')
 call s:hi('CocErrorHighlight',   [], [], 'undercurl')
 call s:hi('CocWarningHighlight', [], [], 'undercurl')
-call s:hi('CocFloating',       s:fg0, s:bg2, '')
-call s:hi('CocMenuSel',        s:fg0, s:red_dim, 'bold')
-call s:hi('CocSearch',         s:amber, [], 'bold')
-call s:hi('CocPumSearch',      s:amber, [], 'bold')
-call s:hi('CocPumMenu',        s:fg0, s:bg2, '')
-call s:hi('CocPumDetail',      s:fg1, s:bg2, '')
-call s:hi('CocPumShortcut',    s:fg1, s:bg2, '')
-call s:hi('CocPumDeprecated',  s:fg1, s:bg2, 'strikethrough')
-call s:hi('CocCodeLens',       s:fg1, [], '')
-call s:hi('CocInlayHint',      s:cyan, [], 'italic')
-execute 'hi CocErrorFloat guifg=' . s:red_bright[0] . ' guibg=' . s:bg2[0]
-execute 'hi CocWarningFloat guifg=' . s:amber[0] . ' guibg=' . s:bg2[0]
-execute 'hi CocInfoFloat guifg=' . s:cyan[0] . ' guibg=' . s:bg2[0]
+call s:hi('CocFloating',       s:fg0, s:bg1, '')
+call s:hi('CocMenuSel',        s:dark, s:status, 'bold')
+call s:hi('CocInlayHint',      s:tilde, [], 'italic')
+call s:hi('NERDTreeDir',       s:fg1, [], 'bold')
+call s:hi('NERDTreeDirSlash',  s:linenr, [], '')
+call s:hi('NERDTreeFile',      s:fg0, [], '')
+call s:hi('NERDTreeExecFile',  s:string, [], '')
+call s:hi('NERDTreeCWD',       s:curnr, [], 'bold')
 
-" ------------------------------------------------------------
-" NERDTree
-" ------------------------------------------------------------
-call s:hi('NERDTreeDir',        s:cyan, [], 'bold')
-call s:hi('NERDTreeDirSlash',   s:fg1, [], '')
-call s:hi('NERDTreeOpenable',   s:red, [], '')
-call s:hi('NERDTreeClosable',   s:red_bright, [], '')
-call s:hi('NERDTreeFile',       s:fg0, [], '')
-call s:hi('NERDTreeExecFile',   s:green, [], '')
-call s:hi('NERDTreeCWD',        s:red_bright, [], 'bold')
-call s:hi('NERDTreeUp',         s:fg1, [], '')
-call s:hi('NERDTreeFlags',      s:red, [], '')
-
-" ------------------------------------------------------------
-" Status do git no NERDTree
-" ------------------------------------------------------------
-let g:NERDTreeGitStatusHighlightingCustom = {
-            \ 'Staged'    : 'guifg=' . s:green[0]  . ' ctermfg=' . s:green[1],
-            \ 'Modified'  : 'guifg=' . s:amber[0]  . ' ctermfg=' . s:amber[1],
-            \ 'Untracked' : 'guifg=' . s:fg1[0]    . ' ctermfg=' . s:fg1[1],
-            \ 'Renamed'   : 'guifg=' . s:blue[0]   . ' ctermfg=' . s:blue[1],
-            \ 'Unmerged'  : 'guifg=' . s:red_bright[0] . ' ctermfg=' . s:red_bright[1],
-            \ 'Deleted'   : 'guifg=' . s:red_dim[0]. ' ctermfg=' . s:red_dim[1],
-            \ 'Dirty'     : 'guifg=' . s:red_bright[0] . ' ctermfg=' . s:red_bright[1],
-            \ 'Ignored'   : 'guifg=' . s:comment[0]. ' ctermfg=' . s:comment[1],
-            \ 'Clean'     : 'guifg=' . s:green[0]  . ' ctermfg=' . s:green[1],
-            \ }
-
-" ------------------------------------------------------------
-" Terminal (:terminal), pra combinar com o resto
-" ------------------------------------------------------------
 let g:terminal_ansi_colors = [
-      \ s:bg0[0], s:red[0], s:green[0], s:amber[0],
-      \ s:blue[0], s:red_soft[0], s:blue[0], s:fg0[0],
-      \ s:fg1[0], s:red_bright[0], s:green[0], s:amber[0],
-      \ s:blue[0], s:red_soft[0], s:blue[0], s:fg0[0]
+      \ s:dark[0], s:err[0], s:info[0], s:warn[0],
+      \ s:linenr[0], s:bg3[0], s:string[0], s:fg0[0],
+      \ s:tilde[0], s:err[0], s:info[0], s:curnr[0],
+      \ s:linenr[0], s:visual[0], s:string[0], s:fg1[0]
       \ ]

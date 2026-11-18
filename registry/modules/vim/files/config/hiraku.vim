@@ -48,6 +48,57 @@ endfunction
 
 call HirakuLoad()
 
+" ---------------------------------------------------------------- templates
+" Arquivo novo: o template do app (template_<lang> no hiraku.json) ou, sem ele, o
+" arquivo padrão. __CLASSNAME__ vira o nome do arquivo; __CURSOR__ marca o cursor.
+function! IcaroInsertTemplate(key, file) abort
+    let l:key = 'template_' . a:key
+    if HirakuHas(l:key)
+        let l:text = g:hiraku[l:key]
+        if type(l:text) != v:t_string || l:text =~# '^\_s*$'
+            return
+        endif
+        let l:lines = split(l:text, "\n", 1)
+        if len(l:lines) > 1 && l:lines[-1] ==# ''
+            call remove(l:lines, -1)
+        endif
+    elseif !empty(a:file) && filereadable(expand(a:file))
+        let l:lines = readfile(expand(a:file))
+    else
+        return
+    endif
+    let l:name = escape(expand('%:t:r'), '\&~')
+    call map(l:lines, {_, l -> substitute(l, '__CLASSNAME__', l:name, 'g')})
+    let l:pos = [1, 1]
+    for l:i in range(len(l:lines))
+        let l:c = stridx(l:lines[l:i], '__CURSOR__')
+        if l:c >= 0
+            let l:pos = [l:i + 1, l:c + 1]
+            let l:lines[l:i] = substitute(l:lines[l:i], '__CURSOR__', '', '')
+            break
+        endif
+    endfor
+    silent! %delete _
+    call setline(1, l:lines)
+    call cursor(l:pos[0], l:pos[1])
+endfunction
+
+" ---------------------------------------------------------------- Central <-> app
+" Um toggle mudou no editor (F3, F4, F10...): grava no app também, se o app
+" controla essa chave. Assim o hiraku.json e o editor não discordam.
+function! HirakuToApp(key, value) abort
+    if !HirakuHas(a:key) || g:hiraku[a:key] == a:value
+        return
+    endif
+    let g:hiraku[a:key] = a:value
+    let l:exe = executable('hiraku') ? 'hiraku' : executable('hiraku-setup-manager') ? 'hiraku-setup-manager' : ''
+    if empty(l:exe) || !exists('*job_start')
+        return
+    endif
+    let l:text = type(a:value) == v:t_bool ? (a:value ? 'true' : 'false') : string(a:value)
+    call job_start([l:exe, 'set', 'vim', a:key . '=' . l:text], {'in_io': 'null', 'out_io': 'null', 'err_io': 'null'})
+endfunction
+
 " ---------------------------------------------------------------- aplicar
 function! HirakuLeader() abort
     let l:leader = {'space': ' ', 'comma': ',', 'backslash': '\'}
@@ -55,7 +106,8 @@ function! HirakuLeader() abort
     let g:maplocalleader = g:mapleader
 endfunction
 
-let s:bools = ['number', 'relativenumber', 'cursorline', 'cursorcolumn', 'list', 'wrap',
+let s:bools = ['number', 'relativenumber', 'cursorline', 'cursorcolumn', 'list', 'wrap', 'spell',
+      \ 'showmode', 'smartindent', 'autoindent', 'backup', 'writebackup',
       \ 'linebreak', 'expandtab', 'undofile', 'swapfile', 'confirm', 'splitright', 'splitbelow',
       \ 'ignorecase', 'smartcase', 'hlsearch', 'incsearch']
 
@@ -111,6 +163,9 @@ endfunction
 
 function! HirakuApplyKeymaps() abort
     call s:UnmapAll()
+    if exists('*HirakuApplyFkeys')
+        call HirakuApplyFkeys()
+    endif
     let l:mode = HirakuGet('delete_mode', 'copy')
     if l:mode ==# 'blackhole'
         " d, c, x, s jogam fora sem tocar no que foi copiado; <leader>d recorta.
@@ -179,6 +234,44 @@ function! HirakuApplyAutopairs() abort
     endif
 endfunction
 
+" Central: com o Vim já aberto, aciona o toggle quando o app discorda; ao abrir,
+" só ajusta o estado inicial (os recursos ainda não carregaram).
+function! s:Toggle(appkey, current, fn) abort
+    if !HirakuHas(a:appkey) || (a:current ? 1 : 0) == (g:hiraku[a:appkey] ? 1 : 0)
+        return
+    endif
+    if v:vim_did_enter && exists('*' . a:fn)
+        silent! call call(a:fn, [])
+    endif
+endfunction
+
+function! HirakuApplyToggles() abort
+    let l:live = v:vim_did_enter
+    " autocomplete por linguagem
+    if exists('g:icaro_ac_state')
+        for l:lang in ['cpp', 'java', 'python']
+            let l:k = 'autocomplete_' . l:lang
+            if HirakuHas(l:k) && (get(g:icaro_ac_state, l:lang, 1) ? 1 : 0) != (g:hiraku[l:k] ? 1 : 0)
+                let g:icaro_ac_state[l:lang] = g:hiraku[l:k] ? 1 : 0
+                for l:b in range(1, bufnr('$'))
+                    if bufexists(l:b) && getbufvar(l:b, '&filetype') ==# l:lang
+                        call setbufvar(l:b, 'coc_suggest_disable', g:hiraku[l:k] ? 0 : 1)
+                    endif
+                endfor
+            endif
+        endfor
+    endif
+    if l:live
+        call s:Toggle('inlay', get(g:, 'my_inlay_hints_enabled', 1), 'ToggleInlayHints')
+        call s:Toggle('matchparen', get(g:, 'icaro_matchparen_enabled', 1), 'ToggleMatchParen')
+        call s:Toggle('header', !get(g:, 'icaro_header_hidden', 0), 'ToggleHeader')
+    else
+        if HirakuHas('inlay') | let g:my_inlay_hints_enabled = g:hiraku.inlay ? 1 : 0 | endif
+        if HirakuHas('matchparen') | let g:icaro_matchparen_enabled = g:hiraku.matchparen ? 1 : 0 | endif
+        if HirakuHas('header') | let g:icaro_header_hidden = g:hiraku.header ? 0 : 1 | endif
+    endif
+endfunction
+
 function! HirakuApplyExtra() abort
     let l:code = HirakuGet('extra', '')
     if type(l:code) != v:t_string || l:code =~# '^\_s*$'
@@ -198,6 +291,7 @@ endfunction
 function! HirakuApplyAll() abort
     call HirakuApplyOptions()
     call HirakuApplyKeymaps()
+    call HirakuApplyToggles()
     call HirakuApplyTheme()
     call HirakuApplyAutopairs()
     call HirakuApplyExtra()

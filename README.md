@@ -42,7 +42,15 @@ paleta/transparência do terminal e se quer atualização automática. Nada é g
   - **Vim e Neovim**: tema (com prévia de código), numeração, indentação, mouse, área de
     transferência, *o que o `dd`/`x`/`c` fazem* (copiam ou não), colar sem perder o copiado,
     busca, tecla líder, **seus atalhos** (com prontos como `jk` para sair do insert), plugins
-    liga/desliga e um campo de configuração extra.
+    liga/desliga e um campo de configuração extra;
+  - **Teclas de função**: qual tecla faz cada ação (tema, explorer, compilar, executar,
+    testar, terminal, fecha-pares, modo silencioso, folha de atalhos, Central...). A folha
+    de atalhos (F12) mostra as teclas atuais;
+  - **Central**: o que liga e desliga (autocomplete por linguagem, inlay hints, destaque de
+    parênteses, header, dicas e avisos do LSP...), sincronizado com as teclas e com a
+    Central de dentro do Neovim;
+  - **Templates**: o texto de todo arquivo novo `.cpp`, `.c`, `.py` e `.java`
+    (`__CURSOR__` marca onde o cursor começa).
   A Central de configurações dentro do Neovim (`:RF`) mostra e altera os mesmos valores.
 - **Descobrir** (uma aba em cada programa): plugins e programas que combinam com ele,
   desligados até você ligar — sessões que sobrevivem ao reboot no tmux (resurrect/continuum),

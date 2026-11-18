@@ -13,7 +13,8 @@ let g:loaded_my_functionkeys = 1
 " diferentes de xterm/kitty podem expor sequências alternativas.
 "
 " A ideia aqui é simples: aceitar os códigos mais comuns e encaminhar
-" todos para a mesma ação. Os atalhos normais (<F3>, <S-F10>, etc.)
+" todos para a tecla correspondente (<F5>, <S-F10>...), que faz o que estiver
+" configurado no app (Vim → Teclas de função). Os atalhos normais (<F3>, <S-F10>, etc.)
 " continuam sendo a API principal; estas entradas são apenas aliases.
 " ============================================================
 
@@ -77,49 +78,49 @@ endfunction
 " Mapeia uma sequência alternativa diretamente para a ação. Isso evita
 " depender de um único terminfo e funciona também quando o terminal
 " não anuncia corretamente a tecla ao Vim.
-function! s:Alias(lhs, rhs) abort
-    execute 'nnoremap <silent> ' . a:lhs . ' ' . a:rhs
-    execute 'inoremap <silent> ' . a:lhs . ' <C-o>' . a:rhs
+function! s:Alias(lhs, key) abort
+    execute 'nmap <silent> ' . a:lhs . ' ' . a:key
+    execute 'imap <silent> ' . a:lhs . ' ' . a:key
 endfunction
 
 " xterm/VT100: F1-F4 também podem vir como ESC O P/Q/R/S.
-call s:Alias("\<Esc>OP", ':call IcaroDispatchFunctionKey(1)<CR>')
-call s:Alias("\<Esc>OQ", ':call IcaroDispatchFunctionKey(2)<CR>')
-call s:Alias("\<Esc>OR", ':call IcaroDispatchFunctionKey(3)<CR>')
-call s:Alias("\<Esc>OS", ':call IcaroDispatchFunctionKey(4)<CR>')
+call s:Alias("\<Esc>OP", '<F1>')
+call s:Alias("\<Esc>OQ", '<F2>')
+call s:Alias("\<Esc>OR", '<F3>')
+call s:Alias("\<Esc>OS", '<F4>')
 
 " VT/xterm CSI sem modifier. Também cobre terminais que ignoram o
 " terminfo e entregam a sequência literal.
 let s:fkeys = {1: 11, 2: 12, 3: 13, 4: 14, 5: 15, 6: 17, 7: 18, 8: 19, 9: 20, 10: 21, 11: 23, 12: 24}
 for s:n in keys(s:fkeys)
-    call s:Alias("\<Esc>[" . s:fkeys[s:n] . "~", ':call IcaroDispatchFunctionKey(' . s:n . ')<CR>')
+    call s:Alias("\<Esc>[" . s:fkeys[s:n] . "~", '<F' . s:n . '>')
 endfor
 
 " Linux console: F1-F5 são ESC[[A ... ESC[[E.
-call s:Alias("\<Esc>[[A", ':call IcaroDispatchFunctionKey(1)<CR>')
-call s:Alias("\<Esc>[[B", ':call IcaroDispatchFunctionKey(2)<CR>')
-call s:Alias("\<Esc>[[C", ':call IcaroDispatchFunctionKey(3)<CR>')
-call s:Alias("\<Esc>[[D", ':call IcaroDispatchFunctionKey(4)<CR>')
-call s:Alias("\<Esc>[[E", ':call IcaroDispatchFunctionKey(5)<CR>')
+call s:Alias("\<Esc>[[A", '<F1>')
+call s:Alias("\<Esc>[[B", '<F2>')
+call s:Alias("\<Esc>[[C", '<F3>')
+call s:Alias("\<Esc>[[D", '<F4>')
+call s:Alias("\<Esc>[[E", '<F5>')
 
 " Shift+F1..F12: CSI com modificador 2. F5-F12 usam os códigos
 " estendidos 15,17,18,19,20,21,23,24.
-call s:Alias("\<Esc>[1;2P", ':call IcaroDispatchShiftFunctionKey(1)<CR>')
-call s:Alias("\<Esc>[1;2Q", ':call IcaroDispatchShiftFunctionKey(2)<CR>')
-call s:Alias("\<Esc>[1;2R", ':call IcaroDispatchShiftFunctionKey(3)<CR>')
-call s:Alias("\<Esc>[1;2S", ':call IcaroDispatchShiftFunctionKey(4)<CR>')
-call s:Alias("\<Esc>[15;2~", ':call IcaroDispatchShiftFunctionKey(5)<CR>')
-call s:Alias("\<Esc>[17;2~", ':call IcaroDispatchShiftFunctionKey(6)<CR>')
-call s:Alias("\<Esc>[18;2~", ':call IcaroDispatchShiftFunctionKey(7)<CR>')
-call s:Alias("\<Esc>[19;2~", ':call IcaroDispatchShiftFunctionKey(8)<CR>')
-call s:Alias("\<Esc>[20;2~", ':call IcaroDispatchShiftFunctionKey(9)<CR>')
-call s:Alias("\<Esc>[21;2~", ':call IcaroDispatchShiftFunctionKey(10)<CR>')
-call s:Alias("\<Esc>[23;2~", ':call IcaroDispatchShiftFunctionKey(11)<CR>')
-call s:Alias("\<Esc>[24;2~", ':call IcaroDispatchShiftFunctionKey(12)<CR>')
+call s:Alias("\<Esc>[1;2P", '<S-F1>')
+call s:Alias("\<Esc>[1;2Q", '<S-F2>')
+call s:Alias("\<Esc>[1;2R", '<S-F3>')
+call s:Alias("\<Esc>[1;2S", '<S-F4>')
+call s:Alias("\<Esc>[15;2~", '<S-F5>')
+call s:Alias("\<Esc>[17;2~", '<S-F6>')
+call s:Alias("\<Esc>[18;2~", '<S-F7>')
+call s:Alias("\<Esc>[19;2~", '<S-F8>')
+call s:Alias("\<Esc>[20;2~", '<S-F9>')
+call s:Alias("\<Esc>[21;2~", '<S-F10>')
+call s:Alias("\<Esc>[23;2~", '<S-F11>')
+call s:Alias("\<Esc>[24;2~", '<S-F12>')
 
 " Algumas versões de terminal/terminfo entregam Shift+F10 como uma
 " variante modificada da sequência base. Aceitamos também a forma
 " ;2~ já usada pelo xterm moderno.
 
 " F24 é usado como fallback para Shift+F12 em alguns ambientes.
-call s:Alias("\<Esc>[24;3~", ':call ToggleHeader()<CR>')
+call s:Alias("\<Esc>[24;3~", '<S-F12>')

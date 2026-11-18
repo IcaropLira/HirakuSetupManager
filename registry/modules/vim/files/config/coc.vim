@@ -159,6 +159,7 @@ function! ToggleAutoPairs() abort
         call writefile([g:icaro_pairs_enabled ? '1' : '0'], g:icaro_pairs_state_file)
     catch /.*/
     endtry
+    call HirakuToApp('autopairs', g:icaro_pairs_enabled ? v:true : v:false)
     redrawstatus!
 endfunction
 
@@ -424,6 +425,7 @@ function! ToggleAutocomplete() abort
     endif
 
     call s:PersistAutocompleteState()
+    call HirakuToApp('autocomplete_' . l:ft, l:new_state ? v:true : v:false)
     redrawstatus!
 endfunction
 
@@ -462,6 +464,7 @@ function! ToggleInlayHints() abort
         echo 'Dicas de parâmetro (inline): LIGADAS'
     endif
     call s:PersistState(g:icaro_inlay_state_file, g:my_inlay_hints_enabled)
+    call HirakuToApp('inlay', g:my_inlay_hints_enabled ? v:true : v:false)
 endfunction
 
 " Aplica o estado salvo assim que o coc terminar de inicializar

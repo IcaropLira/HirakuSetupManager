@@ -108,6 +108,16 @@ function M.autocomplete()
   pcall(function() require("lualine").refresh() end)
 end
 
+-- liga/desliga o autocomplete de uma linguagem sem depender do buffer atual (app)
+function M.set_ac(lang, on)
+  on = on and true or false
+  if ac_on(lang == "outros" and "" or lang) == on then return end
+  M.s.ac[lang] = on
+  state.set("ac", M.s.ac)
+  if not on then pcall(function() require("blink.cmp").hide() end) end
+  pcall(function() require("lualine").refresh() end)
+end
+
 -- ---------- F3: inlay hints ----------
 function M.inlay()
   M.s.inlay = not M.s.inlay
