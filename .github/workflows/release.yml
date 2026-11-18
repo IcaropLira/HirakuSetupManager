@@ -98,5 +98,5 @@ jobs:
             - Windows: `.msi` ou `-setup.exe`
           releaseDraft: false
           prerelease: false
-          uploadUpdaterJson: ${{ steps.sign.outputs.enabled == 'true' }}
+          includeUpdaterJson: ${{ steps.sign.outputs.enabled == 'true' }}
           args: ${{ matrix.args }} ${{ steps.sign.outputs.extra }}
