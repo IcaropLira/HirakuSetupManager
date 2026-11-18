@@ -308,9 +308,23 @@ pub(crate) fn make_link(target: &Path, link: &Path) -> std::io::Result<()> {
     std::os::unix::fs::symlink(target, link)
 }
 
+/// Sem symlinks (Windows): copia o binário e grava ao lado um marcador com a origem,
+/// para reconhecer a cópia como do hiraku na próxima atualização.
 #[cfg(not(unix))]
 pub(crate) fn make_link(target: &Path, link: &Path) -> std::io::Result<()> {
-    fs::copy(target, link).map(|_| ())
+    fs::copy(target, link)?;
+    fs::write(copy_marker(link), target.to_string_lossy().as_bytes())
+}
+
+fn copy_marker(link: &Path) -> PathBuf {
+    let mut name = link.file_name().map(|n| n.to_os_string()).unwrap_or_default();
+    name.push(".hiraku-link");
+    link.with_file_name(name)
+}
+
+/// O arquivo comum em `link` é uma cópia feita pelo hiraku a partir de `target`?
+fn is_our_copy(link: &Path, target: &Path) -> bool {
+    fs::read_to_string(copy_marker(link)).is_ok_and(|origin| Path::new(origin.trim()) == target)
 }
 
 /// Cria os links dos binários (`link` -> `dest/src`). Só substitui um link que já
@@ -340,6 +354,9 @@ pub fn link_bins(dest: &Path, bins: &[(String, PathBuf)]) -> Result<Vec<PathBuf>
                         current.display()
                     )));
                 }
+            }
+            Ok(_) if is_our_copy(link, &target) => {
+                fs::remove_file(link).map_err(io_err(link))?;
             }
             Ok(_) => {
                 return Err(Error::Unsupported(format!(
@@ -402,6 +419,22 @@ mod tests {
         assert_eq!(ArchiveKind::from_name("k.txz").unwrap(), ArchiveKind::TarXz);
         assert_eq!(ArchiveKind::from_name("tmux").unwrap(), ArchiveKind::Raw);
         assert!(ArchiveKind::from_name("k.zip").is_err());
+    }
+
+    #[test]
+    fn copies_are_recognized_only_with_a_matching_marker() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("opt/tool");
+        let link = dir.path().join("bin/tool");
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, "novo").unwrap();
+        fs::write(&link, "antigo").unwrap();
+        assert!(!is_our_copy(&link, &target), "sem marcador: arquivo de outra origem");
+        fs::write(copy_marker(&link), target.to_string_lossy().as_bytes()).unwrap();
+        assert!(is_our_copy(&link, &target));
+        assert!(!is_our_copy(&link, &dir.path().join("outro")), "marcador de outra origem");
+        assert_eq!(copy_marker(&link).file_name().unwrap(), "tool.hiraku-link");
     }
 
     #[test]
