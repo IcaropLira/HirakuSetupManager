@@ -1,0 +1,7 @@
+[hiraku]
+name=Hiraku Setup Manager
+baseurl=https://icaroplira.github.io/HirakuSetupManager/rpm/$basearch
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+metadata_expire=6h
