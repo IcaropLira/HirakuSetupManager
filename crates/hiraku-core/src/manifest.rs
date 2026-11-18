@@ -40,6 +40,11 @@ pub struct Manifest {
     /// Módulos em cuja aba "Descobrir" este aparece como sugestão (ex.: ["shell", "nvim"]).
     #[serde(default)]
     pub discover: Vec<String>,
+    /// Módulos que não podem ficar habilitados junto com este (escrevem os mesmos
+    /// arquivos). Habilitar este desabilita os outros; no sync, este é pulado se um
+    /// deles estiver habilitado.
+    #[serde(default)]
+    pub conflicts: Vec<String>,
 }
 
 /// Uma opção configurável do módulo: o tipo (`kind`) e os metadados comuns que a
@@ -74,6 +79,9 @@ pub enum OptionKind {
         /// Nome de exibição de cada valor (opcional).
         #[serde(default)]
         labels: BTreeMap<String, String>,
+        /// Texto mais longo sobre cada valor (opcional; ex.: linha do tempo de versões).
+        #[serde(default)]
+        details: BTreeMap<String, String>,
     },
     Bool {
         default: bool,
@@ -445,6 +453,9 @@ impl Manifest {
             if !link.starts_with("https://") || link.contains(char::is_whitespace) {
                 return Err(bad(format!("{at}: o link precisa começar com https:// e não ter espaços")));
             }
+        }
+        if let Some(bad_id) = self.conflicts.iter().find(|d| !is_valid_id(d) || *d == &self.id) {
+            return Err(bad(format!("conflicts: '{bad_id}' inválido")));
         }
         if let Some(bad_id) = self.discover.iter().find(|d| !is_valid_id(d)) {
             return Err(bad(format!("discover: '{bad_id}' não é um id de módulo")));

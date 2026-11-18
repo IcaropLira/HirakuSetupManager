@@ -59,6 +59,14 @@ paleta/transparência do terminal e se quer atualização automática. Nada é g
 - **Senha do sudo**: em Configurações → Sistema dá para lembrar a autorização. A senha não
   é guardada: o hiraku cria uma regra em `/etc/sudoers.d` que libera só o `install` do
   dnf/apt/pacman/zypper. Sem sudo na máquina, use o modo "Só no meu usuário".
+- **Verificar integridade** (Início, menu Ajuda ou Ctrl+I): confere arquivo por arquivo
+  se o que o app manda está mesmo no disco (arquivo antigo no lugar, editado à mão,
+  desatualizado, faltando), se o último sync deu erro, se os comandos existem num terminal
+  novo, se o `vim` é o completo (o vim-minimal ignora a configuração) e se o Neovim é 0.10+.
+  **Reparar** grava tudo de novo como esperado, com backup (`hiraku sync --repair` no terminal).
+- **Vim clássico (old school)**: o Vim de antes do Neovim, instalado pelo instalador original
+  da época. Uma linha do tempo com 8 versões (09/09 a 07/10/2026) no Personalizar; trocar de
+  versão reinstala. Não roda junto com o Vim moderno (habilitar um desliga o outro).
 - **Módulos**: liga/desliga o que o hiraku mantém, fixa versões.
 - **Conflitos**: se você editou um arquivo que o hiraku também quer mudar, nada é
   sobrescrito — você vê o diff e escolhe.

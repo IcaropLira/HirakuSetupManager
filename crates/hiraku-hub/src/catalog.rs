@@ -40,6 +40,8 @@ pub struct OptSpec {
     pub section: Option<String>,
     /// Nome de exibição dos valores de uma escolha.
     pub labels: BTreeMap<String, String>,
+    /// Texto longo por valor (linha do tempo de versões, por exemplo).
+    pub details: BTreeMap<String, String>,
     /// Tem pré-visualização de cores por valor.
     pub has_preview: bool,
     /// Página do projeto (plugins da aba Descobrir).
@@ -84,9 +86,11 @@ pub fn build_catalog(manifests: &[(Manifest, PathBuf)], os: Os) -> Vec<ModuleInf
 impl OptSpec {
     pub fn from_def(module: &str, key: &str, def: &OptionDef) -> OptSpec {
         let mut labels = BTreeMap::new();
+        let mut details = BTreeMap::new();
         let kind = match &def.kind {
-            OptionKind::Choice { values, labels: l, .. } => {
+            OptionKind::Choice { values, labels: l, details: d, .. } => {
                 labels = l.clone();
+                details = d.clone();
                 OptKind::Choice(values.clone())
             }
             OptionKind::Bool { .. } => OptKind::Bool,
@@ -109,6 +113,7 @@ impl OptSpec {
             label: def.label.clone(),
             section: def.section.clone(),
             labels,
+            details,
             has_preview: def.preview.is_some(),
             link: def.link.clone(),
         }

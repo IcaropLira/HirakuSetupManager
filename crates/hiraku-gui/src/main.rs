@@ -239,7 +239,8 @@ fn line_of(event: &CoreEvent) -> SyncLine {
 /// Começa um sync numa thread e devolve na hora. Progresso em `sync://line`,
 /// resultado em `sync://done`. `only` = aplicar só um módulo (e dependências).
 #[tauri::command]
-fn start_sync(app: AppHandle, state: State<AppState>, only: Option<String>) -> Res<()> {
+fn start_sync(app: AppHandle, state: State<AppState>, only: Option<String>, repair: Option<bool>) -> Res<()> {
+    let repair = repair.unwrap_or(false);
     {
         let mut running = state.running.lock().map_err(|e| e.to_string())?;
         if *running {
@@ -279,7 +280,7 @@ fn start_sync(app: AppHandle, state: State<AppState>, only: Option<String>) -> R
         }
     };
 
-    let rx = s.spawn_sync(settings);
+    let rx = if repair { s.spawn_repair(settings) } else { s.spawn_sync(settings) };
     std::thread::spawn(move || {
         let mut last_progress = std::time::Instant::now();
         let result: Result<SyncReport, String> = loop {
@@ -320,6 +321,12 @@ fn start_sync(app: AppHandle, state: State<AppState>, only: Option<String>) -> R
         );
     });
     Ok(())
+}
+
+/// "Verificar integridade": o que está diferente do esperado (não grava nada).
+#[tauri::command]
+fn health(state: State<AppState>) -> Res<hiraku_hub::health::HealthReport> {
+    services(&state)?.health()
 }
 
 #[tauri::command]
@@ -427,6 +434,7 @@ fn main() -> ExitCode {
             needs_root,
             sudo_auth,
             sudo_remember,
+            health,
             start_sync,
             refresh_registry,
             resolve_dependencies,
