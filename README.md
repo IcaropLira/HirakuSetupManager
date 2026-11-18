@@ -35,8 +35,15 @@ paleta/transparência do terminal e se quer atualização automática. Nada é g
 
 ## Depois de instalado
 
-- **Personalizar**: paleta do kitty, opacidade, desfoque, visualizer do shell… Cada mudança
-  é aplicada na hora (as janelas abertas do kitty recarregam sozinhas).
+- **Personalizar**: tudo do kitty, tmux, Vim e Neovim, aplicado na hora — inclusive com o
+  editor/terminal aberto:
+  - **kitty**: paleta, opacidade, desfoque;
+  - **tmux**: prefixo, mouse, cores e posição da barra, relógio, teclas de divisão, atalhos extras;
+  - **Vim e Neovim**: tema (com prévia de código), numeração, indentação, mouse, área de
+    transferência, *o que o `dd`/`x`/`c` fazem* (copiam ou não), colar sem perder o copiado,
+    busca, tecla líder, **seus atalhos** (com prontos como `jk` para sair do insert), plugins
+    liga/desliga e um campo de configuração extra.
+  A Central de configurações dentro do Neovim (`:RF`) mostra e altera os mesmos valores.
 - **Módulos**: liga/desliga o que o hiraku mantém, fixa versões.
 - **Conflitos**: se você editou um arquivo que o hiraku também quer mudar, nada é
   sobrescrito — você vê o diff e escolhe.

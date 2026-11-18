@@ -190,6 +190,43 @@ Variáveis disponíveis nos hooks: `HIRAKU_MODULE`, `HIRAKU_MODULE_DIR`, `HIRAKU
 (user|system), `HIRAKU_OS`, `HIRAKU_HOME`, `HIRAKU_BIN_DIR`, `HIRAKU_STATE_DIR`,
 `HIRAKU_CHANGED`, `HIRAKU_UNATTENDED`, `HIRAKU_PRIVILEGE` e `HIRAKU_OPT_<OPÇÃO>`.
 
+### Tipos de opção e metadados
+
+| `type` | valor | no template |
+|---|---|---|
+| `choice` | um de `values` (com `labels` opcionais para exibir) | texto |
+| `bool` | `true`/`false` | `{{ x }}` → true/false · `{{ x \| onoff }}` → on/off (tmux) |
+| `number` | inteiro em `[min, max]` (`divisor` opcional) | número |
+| `string` | texto de uma linha | texto · `{{ x \| json }}` → string JSON |
+| `lines` | texto de várias linhas (vai como está) | texto |
+| `color` | `#rrggbb` | texto |
+| `keymaps` | lista JSON `[{"mode","lhs","rhs","desc","remap"}]` (modos: letras de `nivxoct`) | JSON |
+
+Todas aceitam `label` (nome no app), `section` (agrupa no app; com seções, o app segue a
+ordem do arquivo) e `description`. Uma `choice` pode ter `preview = "../outro-modulo/files/{value}.vim"`:
+o app lê as cores do arquivo (`nome #rrggbb` ou `let s:nome = ['#rrggbb', n]`) e mostra cartões.
+
+`[[config]]` com `triggers_hooks = false`: mudar aquele arquivo não dispara os hooks
+`on = "change"` (as opções do nvim não rodam o `Lazy sync` a cada clique).
+
+## Editores: vim, nvim e tmux pelo app
+
+As opções do vim e do nvim (aparência, edição, copiar/colar, busca, atalhos, plugins,
+extra) são geradas por `scripts/gen-editor-options.py` (rodar depois de mexer nele) e vão
+para `files/hiraku.json`, um template que vira `~/.config/nvim/hiraku.json` e
+`~/.vim/hiraku.json`:
+
+- **nvim** (`lua/icaro/hiraku.lua`): aplica ao abrir, observa a pasta e reaplica quando o app
+  grava (opções, atalhos com restauração do atalho anterior, tema, transparência, extra).
+  Plugins desligados viram `enabled = false` em `plugins/zz_hiraku.lua`. A Central (`:RF`)
+  lê os mesmos valores (via `state.lua`) e grava de volta com `hiraku set nvim ...`, em fila.
+- **vim** (`config/hiraku.vim`): o mesmo em Vimscript, conferindo o arquivo a cada 2 s.
+  `packadd` dos plugins condicionado a `HirakuPlugin()`.
+- **tmux**: o `tmux.conf` é template; o hook `reload-config` faz `source-file` no tmux aberto.
+
+`delete_mode`: `copy` (padrão do Vim), `blackhole` (d/c/x/s vão para `"_`; `<leader>d`
+recorta) ou `x_only`. `paste_keeps`: `p` no visual não troca o que foi copiado.
+
 ## Manter as versões do registry em dia
 
 `hiraku registry bump` (para quem mantém o registry, ou o CI dele) lê o `bump = {...}` de cada

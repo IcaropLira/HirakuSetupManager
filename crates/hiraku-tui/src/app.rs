@@ -555,9 +555,16 @@ impl App {
             _ => None,
         };
         if let Some(delta) = delta {
-            if spec.kind == OptKind::Text {
-                self.status = "texto: Enter para editar".to_string();
-                return None;
+            match spec.kind {
+                OptKind::Text | OptKind::Color => {
+                    self.status = "Enter para editar".to_string();
+                    return None;
+                }
+                OptKind::Lines | OptKind::Keymaps => {
+                    self.status = format!("{}: edite no app (Hiraku Setup Manager) ou com `hiraku set`", spec.key);
+                    return None;
+                }
+                _ => {}
             }
             let next = spec.step(&current, delta);
             return self.commit_option(&spec, Some(next));
@@ -577,7 +584,11 @@ impl App {
                     let next = spec.step(&current, 1);
                     self.commit_option(&spec, Some(next))
                 }
-                OptKind::Number { .. } | OptKind::Text => {
+                OptKind::Lines | OptKind::Keymaps => {
+                    self.status = format!("{}: edite no app (Hiraku Setup Manager) ou com `hiraku set`", spec.key);
+                    None
+                }
+                OptKind::Number { .. } | OptKind::Text | OptKind::Color => {
                     self.editor = Some(Editor::Input {
                         target: EditTarget::Option(spec),
                         buffer: current,
@@ -719,6 +730,7 @@ mod tests {
             kind,
             default: default.into(),
             description: format!("desc {key}"),
+            ..Default::default()
         };
         vec![
             ModuleInfo {

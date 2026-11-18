@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::io::IsTerminal;
 use std::io::Write;
 
-use hiraku_core::manifest::{Manifest, Method, OptionDef};
+use hiraku_core::manifest::{Manifest, Method, OptionKind};
 use hiraku_core::bump::{self, NetResolver};
 use hiraku_core::configs::{self, FirstApply, Outcome, Resolution};
 use hiraku_core::configstate::state_path;
@@ -244,15 +244,17 @@ fn cmd_plan(args: &[String]) -> Result<(), String> {
     println!("modo:   {}", if env.use_root { "system" } else { "user" });
 
     for (key, option) in &manifest.options {
-        match option {
-            OptionDef::Choice { values, default, .. } => {
+        match &option.kind {
+            OptionKind::Choice { values, default, .. } => {
                 println!("opção:  {key} = {default}  (valores: {})", values.join(", "));
             }
-            OptionDef::Bool { default, .. } => println!("opção:  {key} = {default}"),
-            OptionDef::Number { min, max, default, .. } => {
+            OptionKind::Bool { default } => println!("opção:  {key} = {default}"),
+            OptionKind::Number { min, max, default, .. } => {
                 println!("opção:  {key} = {default}  (de {min} a {max})");
             }
-            OptionDef::Text { default, .. } => println!("opção:  {key} = {default:?}"),
+            OptionKind::Text { default } | OptionKind::Color { default } => println!("opção:  {key} = {default:?}"),
+            OptionKind::Lines { .. } => println!("opção:  {key} = (texto de várias linhas)"),
+            OptionKind::Keymaps { default } => println!("opção:  {key} = {default}  (atalhos em JSON)"),
         }
     }
 

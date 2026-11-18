@@ -439,6 +439,7 @@ fn sync_module(
     }
 
     let choices = ctx.settings.options.get(id).cloned().unwrap_or_default();
+    let mut configs_changed = false;
     match configs::apply_module_configs(
         manifest,
         module_dir,
@@ -450,6 +451,17 @@ fn sync_module(
         sink,
     ) {
         Ok(files) => {
+            configs_changed = files.iter().any(|f| {
+                !f.quiet
+                    && matches!(
+                        f.outcome,
+                        configs::Outcome::Created
+                            | configs::Outcome::Updated
+                            | configs::Outcome::Merged
+                            | configs::Outcome::AdoptedWithBackup
+                            | configs::Outcome::Linked
+                    )
+            });
             report.configs = files
                 .into_iter()
                 .map(|f| ConfigResult {
@@ -463,12 +475,7 @@ fn sync_module(
 
     if report.error.is_none() && !manifest.hook.is_empty() {
         let changed = matches!(report.status, InstallStatus::Installed | InstallStatus::Updated)
-            || report.configs.iter().any(|c| {
-                matches!(
-                    c.outcome.as_str(),
-                    "Created" | "Updated" | "Merged" | "AdoptedWithBackup" | "Linked"
-                )
-            });
+            || configs_changed;
         match configs::resolve_options(manifest, &choices) {
             Ok(vars) => {
                 let hook_ctx = HookContext {
@@ -932,6 +939,32 @@ mod tests {
         // `once`: o segundo sync não executa nem lista o hook
         let again = fx.run(&env, &mut NoElevation, &mut VecSink::default()).unwrap();
         assert!(by_id(&again, "app").hooks.is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn quiet_configs_do_not_trigger_change_hooks() {
+        let mut fx = Fx::new();
+        let toml = "schema = 1\nid = \"ed\"\nname = \"ed\"\n\
+            [options.tab]\ntype = \"number\"\nmin = 1\nmax = 8\ndefault = 4\n\
+            [[config]]\nsrc = \"files/main.conf\"\ndest = { unix = \"~/.config/ed/main.conf\" }\n\
+            [[config]]\nsrc = \"files/opts.json\"\ndest = { unix = \"~/.config/ed/opts.json\" }\ntemplate = true\ntriggers_hooks = false\n\
+            [[hook]]\nname = \"boot\"\nscript = \"hooks/boot.sh\"\n";
+        fx.module(toml, &[("main.conf", "x\n"), ("opts.json", "{ \"tab\": {{ tab }} }\n")]);
+        add_hook(&fx, 0, "boot.sh", "echo ran >> \"$HIRAKU_HOME/boot.log\"\n");
+        fx.settings.enable("ed");
+        let env = fx.env(None, false);
+        let runs = |fx: &Fx| fs::read_to_string(fx.home.join("boot.log")).unwrap_or_default().lines().count();
+
+        fx.run(&env, &mut NoElevation, &mut VecSink::default()).unwrap();
+        assert_eq!(runs(&fx), 1, "primeira aplicação: main.conf foi criado");
+
+        // Só a opção mudou: o arquivo quieto é regravado, o hook não roda.
+        fx.settings.set_option("ed", "tab", "2");
+        let report = fx.run(&env, &mut NoElevation, &mut VecSink::default()).unwrap();
+        assert!(by_id(&report, "ed").configs.iter().any(|c| c.outcome == "Updated"));
+        assert_eq!(fs::read_to_string(fx.home.join(".config/ed/opts.json")).unwrap().trim(), "{ \"tab\": 2 }");
+        assert_eq!(runs(&fx), 1, "mudar só o arquivo quieto não dispara o hook");
     }
 
     #[cfg(unix)]

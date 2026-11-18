@@ -5,26 +5,43 @@
 use std::path::PathBuf;
 
 use hiraku_core::env::Os;
-use hiraku_core::manifest::{Manifest, OptionDef};
+use std::collections::BTreeMap;
+
+use hiraku_core::manifest::{Manifest, OptionDef, OptionKind};
 use hiraku_core::settings::Settings;
 use serde::Serialize;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Default)]
 #[serde(tag = "type", content = "data", rename_all = "lowercase")]
 pub enum OptKind {
     Choice(Vec<String>),
     Bool,
     Number { min: i64, max: i64, divisor: i64 },
+    #[default]
     Text,
+    /// Texto de várias linhas (vai como está para o arquivo).
+    Lines,
+    /// `#rrggbb`.
+    Color,
+    /// Lista de atalhos em JSON.
+    Keymaps,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Default)]
 pub struct OptSpec {
     pub module: String,
     pub key: String,
     pub kind: OptKind,
     pub default: String,
     pub description: String,
+    /// Nome amigável (ou `None`: a interface mostra a chave).
+    pub label: Option<String>,
+    /// Seção da interface ("Aparência", "Atalhos"...).
+    pub section: Option<String>,
+    /// Nome de exibição dos valores de uma escolha.
+    pub labels: BTreeMap<String, String>,
+    /// Tem pré-visualização de cores por valor.
+    pub has_preview: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -59,42 +76,33 @@ pub fn build_catalog(manifests: &[(Manifest, PathBuf)], os: Os) -> Vec<ModuleInf
 
 impl OptSpec {
     pub fn from_def(module: &str, key: &str, def: &OptionDef) -> OptSpec {
-        let (kind, default, description) = match def {
-            OptionDef::Choice {
-                values,
-                default,
-                description,
-            } => (OptKind::Choice(values.clone()), default.clone(), description.clone()),
-            OptionDef::Bool {
-                default,
-                description,
-            } => (OptKind::Bool, default.to_string(), description.clone()),
-            OptionDef::Number {
-                min,
-                max,
-                default,
-                divisor,
-                description,
-            } => (
-                OptKind::Number {
-                    min: *min,
-                    max: *max,
-                    divisor: *divisor,
-                },
-                default.to_string(),
-                description.clone(),
-            ),
-            OptionDef::Text {
-                default,
-                description,
-            } => (OptKind::Text, default.clone(), description.clone()),
+        let mut labels = BTreeMap::new();
+        let kind = match &def.kind {
+            OptionKind::Choice { values, labels: l, .. } => {
+                labels = l.clone();
+                OptKind::Choice(values.clone())
+            }
+            OptionKind::Bool { .. } => OptKind::Bool,
+            OptionKind::Number { min, max, divisor, .. } => OptKind::Number {
+                min: *min,
+                max: *max,
+                divisor: *divisor,
+            },
+            OptionKind::Text { .. } => OptKind::Text,
+            OptionKind::Lines { .. } => OptKind::Lines,
+            OptionKind::Color { .. } => OptKind::Color,
+            OptionKind::Keymaps { .. } => OptKind::Keymaps,
         };
         OptSpec {
             module: module.to_string(),
             key: key.to_string(),
             kind,
-            default,
-            description,
+            default: def.default_text(),
+            description: def.description.clone(),
+            label: def.label.clone(),
+            section: def.section.clone(),
+            labels,
+            has_preview: def.preview.is_some(),
         }
     }
 
@@ -133,7 +141,15 @@ impl OptSpec {
                     Ok(n.to_string())
                 }
             }
-            OptKind::Text => Ok(raw.to_string()),
+            OptKind::Text | OptKind::Lines => Ok(raw.to_string()),
+            OptKind::Color => {
+                if hiraku_core::configs::is_hex_color(v) {
+                    Ok(v.to_lowercase())
+                } else {
+                    Err(format!("'{v}' não é uma cor #rrggbb"))
+                }
+            }
+            OptKind::Keymaps => hiraku_core::configs::check_keymaps(raw).map(|_| raw.to_string()),
         }
     }
 
@@ -168,6 +184,14 @@ impl OptSpec {
             OptKind::Bool => if value == "true" { "sim" } else { "não" }.to_string(),
             OptKind::Number { divisor: 100, .. } => format!("{value}%"),
             OptKind::Text if value.is_empty() => "(vazio)".to_string(),
+            OptKind::Lines => match value.lines().filter(|l| !l.trim().is_empty()).count() {
+                0 => "(vazio)".to_string(),
+                n => format!("{n} linha(s)"),
+            },
+            OptKind::Keymaps => {
+                let n = serde_count(value);
+                if n == 0 { "nenhum atalho".to_string() } else { format!("{n} atalho(s)") }
+            }
             _ => value.to_string(),
         }
     }
@@ -179,6 +203,9 @@ impl OptSpec {
             OptKind::Bool => "sim / não".to_string(),
             OptKind::Number { min, max, .. } => format!("{min} a {max}"),
             OptKind::Text => "texto livre".to_string(),
+            OptKind::Lines => "texto de várias linhas (edite no app)".to_string(),
+            OptKind::Color => "cor #rrggbb".to_string(),
+            OptKind::Keymaps => "lista de atalhos (edite no app)".to_string(),
         }
     }
 
@@ -195,6 +222,11 @@ impl OptSpec {
         let filled = filled.min(width);
         Some(format!("{}{}", "█".repeat(filled), "░".repeat(width - filled)))
     }
+}
+
+/// Quantos itens há numa lista JSON (atalhos); 0 se não for lista.
+fn serde_count(json: &str) -> usize {
+    json.matches("\"lhs\"").count()
 }
 
 /// Módulos habilitados mais as dependências (transitivas), na ordem do catálogo.
@@ -223,12 +255,24 @@ pub fn sorted_specs<'a>(modules: impl Iterator<Item = &'a ModuleInfo>) -> Vec<Op
         OptKind::Choice(_) => 0,
         OptKind::Number { .. } => 1,
         OptKind::Bool => 2,
-        OptKind::Text => 3,
+        OptKind::Text | OptKind::Color => 3,
+        OptKind::Lines | OptKind::Keymaps => 4,
     };
     let mut out = Vec::new();
     for m in modules {
         let mut specs = m.options.clone();
-        specs.sort_by(|a, b| rank(a).cmp(&rank(b)).then(a.key.cmp(&b.key)));
+        // Módulo com seções: vale a ordem declarada no manifest, agrupada por seção.
+        if specs.iter().any(|s| s.section.is_some()) {
+            let mut order: Vec<Option<String>> = Vec::new();
+            for s in &specs {
+                if !order.contains(&s.section) {
+                    order.push(s.section.clone());
+                }
+            }
+            specs.sort_by_key(|s| order.iter().position(|o| *o == s.section));
+        } else {
+            specs.sort_by(|a, b| rank(a).cmp(&rank(b)).then(a.key.cmp(&b.key)));
+        }
         out.extend(specs);
     }
     out
@@ -245,6 +289,7 @@ mod tests {
             kind,
             default: default.to_string(),
             description: String::new(),
+            ..Default::default()
         }
     }
 

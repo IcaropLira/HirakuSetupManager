@@ -262,11 +262,17 @@ function! IcaroFixPopupContrast() abort
         let l:nfgc = '0'
     endif
     for l:group in ['Identifier', '@variable', '@variable.builtin', '@variable.parameter', '@variable.member', '@lsp.type.variable', '@lsp.type.parameter', '@lsp.type.property', 'CocSemVariable', 'CocSemParameter', 'CocSemProperty']
+        " Grupos com '@' são do Neovim; o Vim recusa o nome (W18) e travava a abertura.
+        if l:group[0] ==# '@'
+            continue
+        endif
         execute 'hi ' . l:group . ' guifg=' . l:nfg . ' ctermfg=' . l:nfgc . ' gui=NONE cterm=NONE'
     endfor
     " Grupos de sintaxe com cor própria continuam coloridos, mas tipos de
     " identificador/variável nunca herdam branco puro em temas claros.
-    execute 'hi @lsp.typemod.variable.readonly guifg=' . l:nfg . ' ctermfg=' . l:nfgc . ' gui=bold cterm=bold'
+    if has('nvim')
+        execute 'hi @lsp.typemod.variable.readonly guifg=' . l:nfg . ' ctermfg=' . l:nfgc . ' gui=bold cterm=bold'
+    endif
 endfunction
 
 augroup icaro_popup_contrast

@@ -3,6 +3,7 @@
 use std::collections::{BTreeMap, HashSet};
 use std::path::{Component, Path};
 
+use indexmap::IndexMap;
 use serde::Deserialize;
 
 use crate::env::{Arch, Environment, Os, PkgManager};
@@ -23,7 +24,8 @@ pub struct Manifest {
     #[serde(default)]
     pub requires: Vec<String>,
     #[serde(default)]
-    pub options: BTreeMap<String, OptionDef>,
+    /// Na ordem em que foram declaradas (é a ordem em que o app mostra).
+    pub options: IndexMap<String, OptionDef>,
     /// A ordem é a preferência: vale o primeiro passo que casa com o ambiente.
     #[serde(default)]
     pub install: Vec<InstallStep>,
@@ -34,19 +36,38 @@ pub struct Manifest {
     pub hook: Vec<Hook>,
 }
 
+/// Uma opção configurável do módulo: o tipo (`kind`) e os metadados comuns que a
+/// interface usa (nome, seção, texto de ajuda, arquivo de pré-visualização).
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub struct OptionDef {
+    #[serde(flatten)]
+    pub kind: OptionKind,
+    #[serde(default)]
+    pub description: String,
+    /// Nome amigável ("Numeração relativa"); sem ele a interface mostra a chave.
+    #[serde(default)]
+    pub label: Option<String>,
+    /// Agrupa opções na interface ("Aparência", "Atalhos", "Plugins"...).
+    #[serde(default)]
+    pub section: Option<String>,
+    /// Arquivo (relativo à pasta do módulo) com as cores de cada valor de uma
+    /// escolha; `{value}` vira o valor. Ex.: `../icaro-themes/files/colors/{value}.vim`.
+    #[serde(default)]
+    pub preview: Option<String>,
+}
+
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "lowercase")]
-pub enum OptionDef {
+pub enum OptionKind {
     Choice {
         values: Vec<String>,
         default: String,
+        /// Nome de exibição de cada valor (opcional).
         #[serde(default)]
-        description: String,
+        labels: BTreeMap<String, String>,
     },
     Bool {
         default: bool,
-        #[serde(default)]
-        description: String,
     },
     /// Inteiro dentro de [min, max]. Com `divisor` > 1 o valor entra no template já
     /// dividido, com 2 casas (ex.: opacidade 85 e divisor 100 viram `0.85`).
@@ -56,15 +77,44 @@ pub enum OptionDef {
         default: i64,
         #[serde(default = "default_divisor")]
         divisor: i64,
-        #[serde(default)]
-        description: String,
     },
     #[serde(rename = "string")]
     Text {
         default: String,
-        #[serde(default)]
-        description: String,
     },
+    /// Texto de várias linhas, entra no template como está (ex.: binds extras do tmux).
+    Lines {
+        #[serde(default)]
+        default: String,
+    },
+    /// Cor `#rrggbb`.
+    Color {
+        default: String,
+    },
+    /// Lista de atalhos em JSON: `[{"mode":"n","lhs":"dd","rhs":"\"_dd","desc":"..."}]`.
+    Keymaps {
+        #[serde(default = "empty_json_list")]
+        default: String,
+    },
+}
+
+fn empty_json_list() -> String {
+    "[]".to_string()
+}
+
+impl OptionDef {
+    /// Valor padrão como texto (o formato guardado no settings.toml).
+    pub fn default_text(&self) -> String {
+        match &self.kind {
+            OptionKind::Choice { default, .. }
+            | OptionKind::Text { default }
+            | OptionKind::Lines { default }
+            | OptionKind::Color { default }
+            | OptionKind::Keymaps { default } => default.clone(),
+            OptionKind::Bool { default } => default.to_string(),
+            OptionKind::Number { default, .. } => default.to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Deserialize, PartialEq)]
@@ -187,6 +237,11 @@ pub struct ConfigEntry {
     pub backup: bool,
     #[serde(default)]
     pub template: bool,
+    /// `false`: mudar este arquivo não dispara os hooks `on = "change"` do módulo
+    /// (ex.: as opções do editor, que ele mesmo recarrega, não devem rodar o
+    /// `Lazy sync` do nvim a cada clique no app).
+    #[serde(default = "default_true")]
+    pub triggers_hooks: bool,
     /// Obrigatório (e só válido) com `mode = "block"`.
     #[serde(default)]
     pub block: Option<BlockSpec>,
@@ -374,9 +429,9 @@ impl Manifest {
         }
 
         for (key, option) in &self.options {
-            if let OptionDef::Choice {
+            if let OptionKind::Choice {
                 values, default, ..
-            } = option
+            } = &option.kind
             {
                 if values.is_empty() {
                     return Err(bad(format!("option '{key}': values vazio")));
@@ -390,13 +445,23 @@ impl Manifest {
         }
 
         for (key, option) in &self.options {
-            if let OptionDef::Number {
+            match &option.kind {
+                OptionKind::Color { default } if !crate::configs::is_hex_color(default) => {
+                    return Err(bad(format!("option '{key}': default '{default}' não é uma cor #rrggbb")));
+                }
+                OptionKind::Keymaps { default } => {
+                    crate::configs::check_keymaps(default)
+                        .map_err(|e| bad(format!("option '{key}': default inválido: {e}")))?;
+                }
+                _ => {}
+            }
+            if let OptionKind::Number {
                 min,
                 max,
                 default,
                 divisor,
                 ..
-            } = option
+            } = &option.kind
             {
                 if min > max {
                     return Err(bad(format!("option '{key}': min maior que max")));
@@ -685,6 +750,45 @@ pub(crate) fn is_safe_relative(path: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn options_keep_declared_order_and_metadata() {
+        let toml = r##"
+schema = 1
+id = "ed"
+name = "ed"
+[options.zeta]
+type = "bool"
+default = true
+label = "Zeta"
+section = "Aparência"
+[options.alfa]
+type = "color"
+default = "#112233"
+[options.mapas]
+type = "keymaps"
+section = "Atalhos"
+[options.extra]
+type = "lines"
+[options.tema]
+type = "choice"
+values = ["a", "b"]
+default = "a"
+labels = { a = "Tema A" }
+preview = "../t/{value}.vim"
+"##;
+        let m = super::Manifest::from_toml_str(toml, "t").unwrap();
+        let keys: Vec<&String> = m.options.keys().collect();
+        assert_eq!(keys, ["zeta", "alfa", "mapas", "extra", "tema"], "ordem do arquivo");
+        assert_eq!(m.options["zeta"].label.as_deref(), Some("Zeta"));
+        assert_eq!(m.options["zeta"].section.as_deref(), Some("Aparência"));
+        assert_eq!(m.options["mapas"].default_text(), "[]");
+        assert_eq!(m.options["tema"].preview.as_deref(), Some("../t/{value}.vim"));
+        assert!(matches!(&m.options["tema"].kind, super::OptionKind::Choice { labels, .. } if labels["a"] == "Tema A"));
+
+        let bad = toml.replace("\"#112233\"", "\"azul\"");
+        assert!(super::Manifest::from_toml_str(&bad, "t").is_err(), "cor padrão inválida é recusada");
+    }
+
     use super::*;
     use crate::env::Privilege;
 
@@ -1016,7 +1120,7 @@ argv = ["nvim", "--headless", "+qa"]
     #[test]
     fn block_seed_number_and_hooks_parse() {
         let m = extras();
-        assert!(matches!(&m.options["opacity"], OptionDef::Number { min: 30, max: 100, default: 85, divisor: 100, .. }));
+        assert!(matches!(&m.options["opacity"].kind, OptionKind::Number { min: 30, max: 100, default: 85, divisor: 100, .. }));
         assert_eq!(m.config[0].mode, ConfigMode::Block);
         let block = m.config[0].block.as_ref().unwrap();
         assert_eq!(block.begin, "# >>> hiraku >>>");
@@ -1034,7 +1138,7 @@ argv = ["nvim", "--headless", "+qa"]
     fn number_option_defaults_to_divisor_one_and_is_validated() {
         let no_divisor = EXTRAS.replace("divisor = 100\n", "");
         let m = Manifest::from_toml_str(&no_divisor, "x").unwrap();
-        assert!(matches!(&m.options["opacity"], OptionDef::Number { divisor: 1, .. }));
+        assert!(matches!(&m.options["opacity"].kind, OptionKind::Number { divisor: 1, .. }));
         assert!(Manifest::from_toml_str(&EXTRAS.replace("default = 85", "default = 20"), "x").is_err());
         assert!(Manifest::from_toml_str(&EXTRAS.replace("min = 30", "min = 200"), "x").is_err());
         assert!(Manifest::from_toml_str(&EXTRAS.replace("divisor = 100", "divisor = 0"), "x").is_err());

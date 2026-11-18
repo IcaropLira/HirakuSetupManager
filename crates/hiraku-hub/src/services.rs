@@ -112,7 +112,7 @@ impl Services {
         let Some((manifest, _)) = self.manifests.iter().find(|(m, _)| m.id == module) else {
             return BTreeMap::new();
         };
-        let Some(hiraku_core::manifest::OptionDef::Choice { values, .. }) = manifest.options.get(key) else {
+        let Some(hiraku_core::manifest::OptionKind::Choice { values, .. }) = manifest.options.get(key).map(|d| &d.kind) else {
             return BTreeMap::new();
         };
         values
@@ -262,6 +262,17 @@ impl Services {
         let Some((manifest, dir)) = self.manifests.iter().find(|(m, _)| m.id == module) else {
             return Vec::new();
         };
+        if value.is_empty() || value.contains('/') || value.contains('\\') || value.contains("..") {
+            return Vec::new();
+        }
+        // 1. `preview = "../icaro-themes/files/.../{value}.vim"` declarado na opção.
+        if let Some(pattern) = manifest.options.get(key).and_then(|d| d.preview.as_deref()) {
+            return match std::fs::read_to_string(dir.join(pattern.replace("{value}", value))) {
+                Ok(text) => parse_colors(&text),
+                Err(_) => Vec::new(),
+            };
+        }
+        // 2. Um `[[config]]` cujo `src` usa `{{ chave }}` (paletas do kitty).
         let patterns = [format!("{{{{ {key} }}}}"), format!("{{{{{key}}}}}")];
         let Some(src) = manifest
             .config
@@ -271,9 +282,6 @@ impl Services {
         else {
             return Vec::new();
         };
-        if value.contains('/') || value.contains("..") {
-            return Vec::new();
-        }
         let mut rel = src.to_string();
         for p in &patterns {
             rel = rel.replace(p.as_str(), value);
@@ -376,22 +384,36 @@ impl Services {
     }
 }
 
-/// Linhas `nome #rrggbb` -> (nome, rgb). Ignora comentários e valores que não são cor.
+/// Cores nomeadas de um arquivo de tema. Entende:
+/// - `nome  #rrggbb` (paletas do kitty);
+/// - `let s:nome = ['#rrggbb', 233]` (colorschemes do Vim do Ícaro).
 pub fn parse_colors(text: &str) -> Colors {
+    let hex = |h: &str| -> Option<(u8, u8, u8)> {
+        let h = h.get(..6)?;
+        if !h.chars().all(|c| c.is_ascii_hexdigit()) {
+            return None;
+        }
+        let byte = |i: usize| u8::from_str_radix(&h[i..i + 2], 16).ok();
+        Some((byte(0)?, byte(2)?, byte(4)?))
+    };
     text.lines()
         .filter_map(|line| {
             let line = line.trim();
-            if line.starts_with('#') {
+            if let Some(rest) = line.strip_prefix("let s:") {
+                let name: String = rest.chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+                let at = rest.find('#')?;
+                return Some((name, hex(&rest[at + 1..])?));
+            }
+            if line.starts_with('#') || line.starts_with('"') {
                 return None;
             }
             let mut parts = line.split_whitespace();
             let name = parts.next()?;
-            let hex = parts.next()?.strip_prefix('#')?;
-            if hex.len() != 6 {
+            let value = parts.next()?.strip_prefix('#')?;
+            if value.len() != 6 {
                 return None;
             }
-            let byte = |i: usize| u8::from_str_radix(&hex[i..i + 2], 16).ok();
-            Some((name.to_string(), (byte(0)?, byte(2)?, byte(4)?)))
+            Some((name.to_string(), hex(value)?))
         })
         .collect()
 }
@@ -630,6 +652,15 @@ mod tests {
         let all = fx.services.all_previews("kitty", "palette");
         assert_eq!(all.len(), 28, "uma pré-visualização por paleta do registry");
         assert!(fx.services.all_previews("kitty", "opacity").is_empty());
+    }
+
+    #[test]
+    fn vim_colorscheme_palettes_are_read() {
+        let colors = parse_colors("\" comentário\nlet s:bg0      = ['#10161c', 233]\nlet s:fg0 = [\"#eaf2f7\", 255]\nlet s:none = ['NONE', 'NONE']\nhi clear\n");
+        assert_eq!(
+            colors,
+            vec![("bg0".to_string(), (0x10, 0x16, 0x1c)), ("fg0".to_string(), (0xea, 0xf2, 0xf7))]
+        );
     }
 
     #[test]

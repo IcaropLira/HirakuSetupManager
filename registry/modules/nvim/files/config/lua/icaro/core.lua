@@ -76,6 +76,17 @@ function M.setup()
   require("icaro.keymaps")
   require("icaro.autocmds")
   require("icaro.doctor")
+
+  -- Opções do Hiraku Setup Manager: atalhos por cima dos do Ícaro, tema, extras, e
+  -- reaplicação automática quando o app grava o hiraku.json.
+  local hiraku = require("icaro.hiraku")
+  hiraku.apply_keymaps()
+  hiraku.setup()
+  vim.schedule(function()
+    hiraku.apply_theme()
+    hiraku.apply_autopairs()
+    hiraku.apply_extra()
+  end)
 end
 
 return M
