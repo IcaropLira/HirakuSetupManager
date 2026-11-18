@@ -24,7 +24,7 @@ group = "plugin-vim-airline"
 optional = true
 method = "git"
 url = "https://github.com/vim-airline/vim-airline"
-rev = "0000000000000000000000000000000000000000"
+rev = "8dc1bd0a116de527f6bc58c1d04386ba357c624f"
 dest = "~/.vim/pack/plugins/opt/vim-airline"
 bump = {}
 
@@ -33,7 +33,7 @@ group = "plugin-vim-airline-themes"
 optional = true
 method = "git"
 url = "https://github.com/vim-airline/vim-airline-themes"
-rev = "0000000000000000000000000000000000000000"
+rev = "77aab8c6cf7179ddb8a05741da7e358a86b2c3ab"
 dest = "~/.vim/pack/plugins/opt/vim-airline-themes"
 bump = {}
 
@@ -42,7 +42,7 @@ group = "plugin-nerdtree"
 optional = true
 method = "git"
 url = "https://github.com/preservim/nerdtree"
-rev = "0000000000000000000000000000000000000000"
+rev = "690d061b591525890f1471c6675bcb5bdc8cdff9"
 dest = "~/.vim/pack/plugins/opt/nerdtree"
 bump = {}
 
@@ -51,7 +51,7 @@ group = "plugin-nerdtree-git-plugin"
 optional = true
 method = "git"
 url = "https://github.com/Xuyuanp/nerdtree-git-plugin"
-rev = "0000000000000000000000000000000000000000"
+rev = "e1fe727127a813095854a5b063c15e955a77eafb"
 dest = "~/.vim/pack/plugins/opt/nerdtree-git-plugin"
 bump = {}
 
@@ -60,7 +60,7 @@ group = "plugin-vim-fugitive"
 optional = true
 method = "git"
 url = "https://github.com/tpope/vim-fugitive"
-rev = "0000000000000000000000000000000000000000"
+rev = "3b753cf8c6a4dcde6edee8827d464ba9b8c4a6f0"
 dest = "~/.vim/pack/plugins/opt/vim-fugitive"
 bump = {}
 
@@ -69,7 +69,7 @@ group = "plugin-vim-devicons"
 optional = true
 method = "git"
 url = "https://github.com/ryanoasis/vim-devicons"
-rev = "0000000000000000000000000000000000000000"
+rev = "71f239af28b7214eebb60d4ea5bd040291fb7e33"
 dest = "~/.vim/pack/plugins/opt/vim-devicons"
 bump = {}
 
@@ -78,7 +78,7 @@ group = "plugin-coc-nvim"
 optional = true
 method = "git"
 url = "https://github.com/neoclide/coc.nvim"
-rev = "0000000000000000000000000000000000000000"
+rev = "25e88c8e94a44b886c5a66f49fb98a6eb040b4fa"
 dest = "~/.vim/pack/plugins/opt/coc.nvim"
 bump = { branch = "release" }
 

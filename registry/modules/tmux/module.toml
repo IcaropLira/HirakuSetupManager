@@ -22,9 +22,9 @@ provides = ["tmux"]
 when = { os = "linux", arch = "x86_64" }
 provides = ["tmux"]
 method = "release"
-version = "0.0.0"
+version = "3.8"
 url = "https://github.com/tmux/tmux-builds/releases/download/v{version}/tmux-{version}-linux-x86_64.tar.gz"
-sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+sha256 = "147849ff18b62a8aa3d5d8f75dd07c3f9fdfad529f932236afdec838fc1d15e1"
 dest = "~/.local/share/hiraku/tmux"
 bins = [{ src = "tmux", link = "~/.local/bin/tmux" }]
 bump = { github = "tmux/tmux-builds" }
@@ -33,9 +33,9 @@ bump = { github = "tmux/tmux-builds" }
 when = { os = "linux", arch = "aarch64" }
 provides = ["tmux"]
 method = "release"
-version = "0.0.0"
+version = "3.8"
 url = "https://github.com/tmux/tmux-builds/releases/download/v{version}/tmux-{version}-linux-arm64.tar.gz"
-sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+sha256 = "f399311b1159705e69839eaf4f6f68c8b8540dc3a8538b87c30dedb9c3c7fc23"
 dest = "~/.local/share/hiraku/tmux"
 bins = [{ src = "tmux", link = "~/.local/bin/tmux" }]
 bump = { github = "tmux/tmux-builds" }

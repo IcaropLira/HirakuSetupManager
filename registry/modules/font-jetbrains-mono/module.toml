@@ -14,9 +14,9 @@ cask = true
 [[install]]
 when = { os = "linux" }
 method = "release"
-version = "0.0.0"
+version = "3.5.1"
 url = "https://github.com/ryanoasis/nerd-fonts/releases/download/v{version}/JetBrainsMono.tar.xz"
-sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+sha256 = "04d5e8f903693f9dd13e16f867e994834e681eb3c72c0d337a770dcda09010cf"
 dest = "~/.local/share/fonts/JetBrainsMonoNerdFont"
 bump = { github = "ryanoasis/nerd-fonts" }
 

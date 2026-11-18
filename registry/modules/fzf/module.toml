@@ -8,9 +8,9 @@ platforms = ["linux", "macos", "windows"]
 when = { os = "linux", arch = "x86_64" }
 provides = ["fzf"]
 method = "release"
-version = "0.0.0"
+version = "0.75.0"
 url = "https://github.com/junegunn/fzf/releases/download/v{version}/fzf-{version}-linux_amd64.tar.gz"
-sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+sha256 = "0d6640f83582d991cf429754baad64b07e3a4e439a6019670f4b91da1314141c"
 dest = "~/.local/share/hiraku/fzf"
 bins = [{ src = "fzf", link = "~/.local/bin/fzf" }]
 bump = { github = "junegunn/fzf" }
@@ -19,9 +19,9 @@ bump = { github = "junegunn/fzf" }
 when = { os = "linux", arch = "aarch64" }
 provides = ["fzf"]
 method = "release"
-version = "0.0.0"
+version = "0.75.0"
 url = "https://github.com/junegunn/fzf/releases/download/v{version}/fzf-{version}-linux_arm64.tar.gz"
-sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+sha256 = "bd0717badb6a5620387e014bb94209aac4d9eab6ab77b5348eabb0833aeb4d59"
 dest = "~/.local/share/hiraku/fzf"
 bins = [{ src = "fzf", link = "~/.local/bin/fzf" }]
 bump = { github = "junegunn/fzf" }

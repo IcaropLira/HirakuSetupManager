@@ -8,9 +8,9 @@ platforms = ["linux", "macos", "windows"]
 when = { os = "linux", arch = "x86_64" }
 provides = ["rg"]
 method = "release"
-version = "0.0.0"
+version = "15.2.0"
 url = "https://github.com/BurntSushi/ripgrep/releases/download/{version}/ripgrep-{version}-x86_64-unknown-linux-musl.tar.gz"
-sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+sha256 = "33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c"
 dest = "~/.local/share/hiraku/ripgrep"
 strip_components = 1
 bins = [{ src = "rg", link = "~/.local/bin/rg" }]
@@ -20,9 +20,9 @@ bump = { github = "BurntSushi/ripgrep", tag_prefix = "" }
 when = { os = "linux", arch = "aarch64" }
 provides = ["rg"]
 method = "release"
-version = "0.0.0"
+version = "15.2.0"
 url = "https://github.com/BurntSushi/ripgrep/releases/download/{version}/ripgrep-{version}-aarch64-unknown-linux-gnu.tar.gz"
-sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+sha256 = "a740b91c82eaf9914cfedd353572f2791cbe0162c84101ee0951058f4dcbc90d"
 dest = "~/.local/share/hiraku/ripgrep"
 strip_components = 1
 bins = [{ src = "rg", link = "~/.local/bin/rg" }]
