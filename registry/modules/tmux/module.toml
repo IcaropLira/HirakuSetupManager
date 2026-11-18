@@ -1,0 +1,45 @@
+schema = 1
+id = "tmux"
+name = "tmux"
+description = "Multiplexador de terminal (prefixo Ctrl+A)"
+platforms = ["linux", "macos"]
+
+# Com root: pacote da distro.
+[[install]]
+when = { os = "linux", root = true }
+method = "pkg"
+names = { dnf = "tmux", apt = "tmux", pacman = "tmux", zypper = "tmux" }
+provides = ["tmux"]
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "tmux" }
+provides = ["tmux"]
+
+# Sem root: build estático oficial do projeto (tmux/tmux-builds).
+[[install]]
+when = { os = "linux", arch = "x86_64" }
+provides = ["tmux"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/tmux/tmux-builds/releases/download/v{version}/tmux-{version}-linux-x86_64.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/tmux"
+bins = [{ src = "tmux", link = "~/.local/bin/tmux" }]
+bump = { github = "tmux/tmux-builds" }
+
+[[install]]
+when = { os = "linux", arch = "aarch64" }
+provides = ["tmux"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/tmux/tmux-builds/releases/download/v{version}/tmux-{version}-linux-arm64.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/tmux"
+bins = [{ src = "tmux", link = "~/.local/bin/tmux" }]
+bump = { github = "tmux/tmux-builds" }
+
+[[config]]
+src = "files/tmux.conf"
+dest = { unix = "~/.tmux.conf" }

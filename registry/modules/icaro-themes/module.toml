@@ -1,0 +1,14 @@
+schema = 1
+id = "icaro-themes"
+name = "Temas do Ícaro"
+description = "Colorschemes compartilhados pelo vim e pelo nvim (90 arquivos)"
+platforms = ["linux", "macos"]
+
+# Mesma pasta de arquivos, dois destinos: o vim a carrega como pacote; o nvim, de dentro da própria config.
+[[config]]
+src = "files/icaro-theme"
+dest = { unix = "~/.vim/pack/plugins/opt/icaro-theme" }
+
+[[config]]
+src = "files/icaro-theme"
+dest = { unix = "~/.config/nvim/theme/icaro-theme" }

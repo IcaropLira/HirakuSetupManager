@@ -1,111 +1,79 @@
-# Ícaro Lira Setup — kitty + tmux + Vim/Neovim, tudo de uma vez
+# Hiraku Setup Manager
 
-Pacote combinado com os projetos:
+Instala e mantém o setup do Ícaro — **kitty, tmux, Vim/Neovim, o shell e utilitários**
+(starship, eza, bat, zoxide, fzf, fastfetch, ripgrep, Node, JDK, Nerd Font) — num app
+desktop que depois vira o hub de configuração.
 
-- **[`dotfiles/`](dotfiles)** — kitty (terminal), definido como terminal padrão do sistema e
-  fixado na barra de tarefas, + opcionalmente starship/eza/bat/zoxide/fzf
-- **[`tmux/`](tmux)** — configuração de tmux, prefixo `Ctrl+A`
-- **[`vim/`](vim)** — Vim para C++/Java/Python (competitive programming), com autocomplete
-  (coc.nvim) individual por linguagem
-- **[`nvim/`](nvim)** — Neovim com os mesmos atalhos, aliases e temas do Vim, mais LSP nativo,
-  Treesitter e interface completa (veja [`nvim/README.md`](nvim/README.md))
+![Início](docs/img/inicio.png)
 
-Cada um funciona sozinho (tem seu próprio `install.sh`), mas o jeito mais simples é instalar tudo
-de uma vez com o instalador combinado.
+## Instalar
 
-## Instalação
+Baixe o instalador do seu sistema na [última release](https://github.com/IcaropLira/HirakuSetupManager/releases/latest):
 
-```bash
-chmod +x install.sh
-./install.sh                 # menu: Vim, Neovim ou os dois
-./install.sh --editor=nvim   # pula a pergunta do editor
-```
-
-Isso pergunta **uma única vez** se você tem acesso a sudo e se quer o terminal **translúcido**
-ou de **cor sólida, sem transparência**, e qual **paleta de cores** usar — nenhum dos três instaladores pergunta de novo — e instala kitty, tmux e Vim nessa ordem, com um resumo no final.
-
-### Estilo do terminal sem perguntar
-
-```bash
-./install.sh --transparent   # translúcido, com blur
-./install.sh --solid         # cor sólida, sem transparência
-./install.sh --transparent --palette=navy   # translúcido + azul escuro
-```
-
-Pra trocar depois, rode o instalador de novo ou edite `dotfiles/kitty/transparency.conf`.
-
-### Sem acesso a sudo (PC de laboratório, ex: UFCG)
-
-```bash
-./install.sh --user
-```
-
-Pula a pergunta e instala **tudo** em `$HOME/.local`, sem nenhum comando precisando de root:
-
-| Ferramenta | Como é instalada sem sudo |
+| Sistema | Arquivo |
 |---|---|
-| kitty | instalador oficial → `~/.local/kitty.app` |
-| tmux | build estático oficial (tmux/tmux-builds) → `~/.local/bin` |
-| Node.js (pro autocomplete do Vim) | build oficial LTS → `~/.local/node-icaro` |
-| JDK (pra Java no Vim) | Eclipse Temurin (Adoptium) → `~/.local/jdk-icaro` |
-| starship, eza, bat, zoxide, fzf | binários/scripts oficiais → `~/.local/bin` |
-| Nerd Font | → `~/.local/share/fonts` |
-| Plugins do Vim | `git clone` → `~/.vim/pack/...` (nunca precisa de sudo) |
+| Ubuntu / Debian | `.deb` |
+| Fedora | `.rpm` |
+| Qualquer Linux | `.AppImage` |
+| macOS | `.dmg` |
+| Windows | `.msi` ou `-setup.exe` |
 
-Nada fora da sua `$HOME` é tocado — exceto pelos arquivos de configuração que você já espera que
-mudem (`~/.bashrc`, `~/.zshrc`, `~/.vimrc`, `~/.tmux.conf`), sempre com **backup automático**
-antes de qualquer sobrescrita.
+Na primeira vez o app abre um assistente: se você tem sudo, qual editor, o que instalar,
+paleta/transparência do terminal e se quer atualização automática. Nada é gravado até o
+último passo.
 
-### Com sudo
+![Assistente](docs/img/assistente.png)
 
-```bash
-./install.sh --system
-```
+## Depois de instalado
 
-Usa o gerenciador de pacotes da distro (`dnf`/`apt`/`pacman`/`zypper`/`brew`) sempre que possível,
-e só cai pro binário pré-compilado se o pacote falhar ou não existir no repositório da distro.
+- **Personalizar**: paleta do kitty, opacidade, desfoque, visualizer do shell… Cada mudança
+  é aplicada na hora (as janelas abertas do kitty recarregam sozinhas).
+- **Módulos**: liga/desliga o que o hiraku mantém, fixa versões.
+- **Conflitos**: se você editou um arquivo que o hiraku também quer mudar, nada é
+  sobrescrito — você vê o diff e escolhe.
+- **Atualizações**: tudo se atualiza sozinho:
+  - **programas e configs**: um sync agendado (6 h ou diário) baixa o registry assinado
+    publicado neste repositório e instala as versões novas;
+  - **o próprio app**: procura versão nova ao abrir e a cada 6 h, baixa em segundo plano
+    e só pede para reiniciar.
 
-### Outras flags
+![Personalizar](docs/img/personalizar.png)
 
-```bash
-./install.sh --no-font       # kitty: não instala a Nerd Font
-./install.sh --no-extras     # kitty: não instala starship/eza/bat/zoxide/fzf
-./install.sh --copy          # kitty: copia as configs em vez de criar symlinks
-```
+No terminal, o mesmo programa responde como `hiraku` (`.deb`/`.rpm`): `hiraku` abre a
+versão de terminal (TUI), `hiraku sync`, `hiraku set kitty palette=nord`, `hiraku --help`.
 
-## kitty como terminal padrão
-
-O instalador também:
-
-1. Define o kitty como terminal padrão via `~/.config/xdg-terminals.list` (padrão moderno,
-   funciona sem sudo) + `update-alternatives` (só com sudo de verdade) + a chave clássica do
-   GNOME (`gsettings`, quando existir).
-2. Fixa um atalho do kitty na **barra de tarefas** (GNOME Shell — o mais comum em labs Fedora).
-
-Em ambientes gráficos diferentes de GNOME, o passo 2 avisa e não falha a instalação — é rápido
-fazer na mão (clique direito no ícone do kitty → "Adicionar aos favoritos").
-
-## Instalar só uma parte
-
-Cada pasta tem seu próprio `install.sh` e pode ser usada sozinha:
-
-```bash
-cd vim && ./install.sh      # só o Vim
-cd tmux && ./install.sh     # só o tmux
-cd dotfiles && ./install.sh # só o kitty
-```
-
-Nesse caso, cada um pergunta sobre sudo na hora (não reaproveita a escolha dos outros).
-
-## Estrutura
+## Como as atualizações chegam
 
 ```
-.
-├── install.sh      # instalador combinado (este arquivo)
-├── dotfiles/        # kitty + terminal padrão + barra de tarefas
-├── tmux/             # configuração de tmux
-└── vim/               # Vim (C++/Java/Python)
+GitHub Actions                                   seu computador
+──────────────                                   ──────────────
+registry.yml (toda segunda)                      sync agendado (systemd/launchd/schtasks)
+  hiraku registry bump → versões novas             baixa registry.tar.gz + .minisig
+  commit no main                                   confere a assinatura (keys/registry.pub)
+  assina (minisign) → release "registry"   ───►    instala o que mudou
+
+tag v* → release.yml                             app aberto
+  instaladores + latest.json assinado      ───►    tauri-plugin-updater baixa e instala
 ```
 
-Veja o README de cada pasta para detalhes específicos (atalhos do Vim, customização do kitty,
-prefixo do tmux, etc).
+## Desenvolvimento
+
+Veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md) (arquitetura, CLI, registry,
+como rodar e publicar). Resumo:
+
+```sh
+cargo test --workspace --exclude hiraku-gui
+cargo run -p hiraku-gui            # app (Linux: libwebkit2gtk-4.1-dev)
+cargo run -p hiraku-cli -- tui     # versão de terminal
+```
+
+Publicar uma versão do app: `git tag v0.2.0 && git push origin v0.2.0`.
+
+## Instalador antigo
+
+O `install.sh` em shell continua em [`legacy/`](legacy/) e funciona como antes
+(`legacy/install.sh`). Os arquivos de configuração foram migrados para `registry/modules/`.
+
+---
+
+Criado por Ícaro Pinto Lira.

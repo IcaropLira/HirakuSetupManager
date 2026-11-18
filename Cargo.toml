@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = ["crates/hiraku-core", "crates/hiraku-hub", "crates/hiraku-cli", "crates/hiraku-tui", "crates/hiraku-gui"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+thiserror = "1"

@@ -1,0 +1,24 @@
+[package]
+name = "hiraku-core"
+description = "Core do Hiraku: manifests, ambiente, executores de instalação e lockfile"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+toml.workspace = true
+thiserror.workspace = true
+ureq = "2"
+sha2 = "0.10"
+flate2 = "1"
+tar = "0.4"
+lzma-rs = "0.3"
+diffy = "0.4"
+include_dir = "0.7"
+minisign-verify = "0.2"
+toml_edit = "0.22"
+
+[dev-dependencies]
+tempfile = "3"

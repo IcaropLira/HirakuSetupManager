@@ -1,0 +1,58 @@
+schema = 1
+id = "shell"
+name = "Shell (bash/zsh)"
+description = "Bloco no .bashrc/.zshrc, aliases (eza/bat/zoxide/fzf), starship e o visualizer de boas-vindas"
+platforms = ["linux", "macos"]
+
+# Visualizer de boas-vindas (fastfetch/neofetch) — equivale à pergunta do install.sh.
+[options.visualizer]
+type = "choice"
+values = ["none", "fastfetch", "neofetch"]
+default = "none"
+description = "Programa exibido ao abrir um shell (precisa estar instalado)"
+
+[options.fastfetch_color]
+type = "string"
+default = "@33"
+description = "Cor do fastfetch (código do --color)"
+
+[options.neofetch_color]
+type = "string"
+default = "4"
+description = "Cor do neofetch (--ascii_colors)"
+
+[[config]]
+src = "files/shellrc.sh"
+dest = { unix = "~/.config/dotfiles-shell/shellrc.sh" }
+
+[[config]]
+src = "files/visualizer.sh"
+dest = { unix = "~/.config/icaro-visualizer/visualizer.sh" }
+
+[[config]]
+src = "files/visualizer-config.sh"
+dest = { unix = "~/.config/icaro-visualizer/config.sh" }
+template = true
+
+# Só o trecho entre os marcadores é do hiraku (os MESMOS marcadores do install.sh atual: quem já instalou é adotado,
+# sem duplicar). Antes de gravar, o shell valida a sintaxe do resultado; se quebrar, o arquivo não muda.
+[[config]]
+src = "files/shell-block.sh"
+dest = { unix = "~/.bashrc" }
+mode = "block"
+
+[config.block]
+begin = "# >>> ícaro-lira >>>"
+end = "# <<< ícaro-lira <<<"
+check = ["bash", "-n", "{path}"]
+
+[[config]]
+src = "files/shell-block.sh"
+dest = { unix = "~/.zshrc" }
+mode = "block"
+
+[config.block]
+begin = "# >>> ícaro-lira >>>"
+end = "# <<< ícaro-lira <<<"
+check = ["zsh", "-n", "{path}"]
+only_if_exists = true

@@ -1,0 +1,35 @@
+schema = 1
+id = "jdk"
+name = "JDK 21 (Temurin)"
+description = "JDK para Java no vim/nvim (jdtls, javac)"
+platforms = ["linux", "macos"]
+
+# Linux: Temurin 21 portátil em ~/.local, com ou sem root (o default-jdk de distros como o Mint é 11, velho para o jdtls).
+# `bump` fixa o arquivo versionado para onde a API da Adoptium redireciona.
+[[install]]
+when = { os = "linux", arch = "x86_64" }
+method = "release"
+version = "0.0.0"
+url = "https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jdk/hotspot/normal/eclipse"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/jdk"
+strip_components = 1
+bins = [{ src = "bin/java", link = "~/.local/bin/java" }, { src = "bin/javac", link = "~/.local/bin/javac" }]
+bump = { redirect = "https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jdk/hotspot/normal/eclipse" }
+
+[[install]]
+when = { os = "linux", arch = "aarch64" }
+method = "release"
+version = "0.0.0"
+url = "https://api.adoptium.net/v3/binary/latest/21/ga/linux/aarch64/jdk/hotspot/normal/eclipse"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/jdk"
+strip_components = 1
+bins = [{ src = "bin/java", link = "~/.local/bin/java" }, { src = "bin/javac", link = "~/.local/bin/javac" }]
+bump = { redirect = "https://api.adoptium.net/v3/binary/latest/21/ga/linux/aarch64/jdk/hotspot/normal/eclipse" }
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "temurin" }
+cask = true

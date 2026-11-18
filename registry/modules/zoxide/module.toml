@@ -1,0 +1,38 @@
+schema = 1
+id = "zoxide"
+name = "zoxide"
+description = "cd mais esperto (aprende suas pastas)"
+platforms = ["linux", "macos", "windows"]
+
+[[install]]
+when = { os = "linux", arch = "x86_64" }
+provides = ["zoxide"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/ajeetdsouza/zoxide/releases/download/v{version}/zoxide-{version}-x86_64-unknown-linux-musl.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/zoxide"
+bins = [{ src = "zoxide", link = "~/.local/bin/zoxide" }]
+bump = { github = "ajeetdsouza/zoxide" }
+
+[[install]]
+when = { os = "linux", arch = "aarch64" }
+provides = ["zoxide"]
+method = "release"
+version = "0.0.0"
+url = "https://github.com/ajeetdsouza/zoxide/releases/download/v{version}/zoxide-{version}-aarch64-unknown-linux-musl.tar.gz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/hiraku/zoxide"
+bins = [{ src = "zoxide", link = "~/.local/bin/zoxide" }]
+bump = { github = "ajeetdsouza/zoxide" }
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "zoxide" }
+provides = ["zoxide"]
+
+[[install]]
+when = { os = "windows" }
+method = "pkg"
+names = { scoop = "zoxide" }

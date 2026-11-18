@@ -1,0 +1,30 @@
+# Testes em Linux, macOS e Windows a cada push e pull request.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Dependências do app (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev libayatana-appindicator3-dev
+      - name: Testes
+        run: cargo test --workspace --exclude hiraku-gui
+      - name: Registry válido
+        run: cargo run -q -p hiraku-cli -- validate --registry registry/modules
+      - name: App desktop compila
+        run: cargo check -p hiraku-gui

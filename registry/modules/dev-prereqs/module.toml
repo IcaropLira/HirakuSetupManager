@@ -1,0 +1,39 @@
+schema = 1
+id = "dev-prereqs"
+name = "Pré-requisitos de build"
+description = "git, gcc, make e unzip (treesitter e mason do nvim compilam/descompactam)"
+platforms = ["linux"]
+
+# Só com root: são pacotes do sistema. Sem root o módulo não faz nada; os componentes são opcionais
+# e pulam o que já existe (provides). Falta um deles e o nvim reclama na primeira abertura.
+[[install]]
+group = "git"
+optional = true
+when = { os = "linux", root = true }
+method = "pkg"
+names = { dnf = "git", apt = "git", pacman = "git", zypper = "git" }
+provides = ["git"]
+
+[[install]]
+group = "gcc"
+optional = true
+when = { os = "linux", root = true }
+method = "pkg"
+names = { dnf = "gcc", apt = "gcc", pacman = "gcc", zypper = "gcc" }
+provides = ["gcc"]
+
+[[install]]
+group = "make"
+optional = true
+when = { os = "linux", root = true }
+method = "pkg"
+names = { dnf = "make", apt = "make", pacman = "make", zypper = "make" }
+provides = ["make"]
+
+[[install]]
+group = "unzip"
+optional = true
+when = { os = "linux", root = true }
+method = "pkg"
+names = { dnf = "unzip", apt = "unzip", pacman = "unzip", zypper = "unzip" }
+provides = ["unzip"]

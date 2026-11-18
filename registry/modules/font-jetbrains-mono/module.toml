@@ -1,0 +1,36 @@
+schema = 1
+id = "font-jetbrains-mono"
+name = "JetBrainsMono Nerd Font"
+description = "Fonte com ícones (Nerd Font) usada pelo kitty, vim e nvim"
+platforms = ["linux", "macos"]
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "font-jetbrains-mono-nerd-font" }
+cask = true
+
+# Linux: sempre em user-space (não precisa de sudo); o fc-cache roda no hook abaixo.
+[[install]]
+when = { os = "linux" }
+method = "release"
+version = "0.0.0"
+url = "https://github.com/ryanoasis/nerd-fonts/releases/download/v{version}/JetBrainsMono.tar.xz"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+dest = "~/.local/share/fonts/JetBrainsMonoNerdFont"
+bump = { github = "ryanoasis/nerd-fonts" }
+
+[[hook]]
+name = "fc-cache"
+when = { os = "linux" }
+argv = ["fc-cache", "-f"]
+needs = ["fc-cache"]
+optional = true
+
+[[hook]]
+name = "gnome-terminal-font"
+when = { os = "linux" }
+script = "hooks/gnome-terminal-font.sh"
+on = "once"
+needs = ["gsettings"]
+optional = true
