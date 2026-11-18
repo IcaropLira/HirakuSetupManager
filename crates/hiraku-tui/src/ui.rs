@@ -805,6 +805,7 @@ mod tests {
                     kind: OptKind::Choice(vec!["navy".into(), "nord".into()]),
                     default: "navy".into(),
                     description: "Paleta de cores".into(),
+                    ..Default::default()
                 },
                 OptSpec {
                     module: "kitty".into(),
@@ -816,6 +817,7 @@ mod tests {
                     },
                     default: "80".into(),
                     description: "Opacidade".into(),
+                    ..Default::default()
                 },
             ],
         }

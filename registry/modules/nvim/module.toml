@@ -49,6 +49,16 @@ dest = { unix = "~/.config/nvim/lazy-lock.json" }
 mode = "seed"
 
 # Instala os plugins na primeira vez e sempre que a config ou o nvim mudarem.
+
+# Opções escolhidas no app (ou com `hiraku set nvim ...`). O editor lê este arquivo ao
+# abrir e reaplica sozinho quando ele muda.
+[[config]]
+src = "files/hiraku.json"
+dest = { unix = "~/.config/nvim/hiraku.json" }
+template = true
+# O editor recarrega sozinho; mudar opção não roda o bootstrap/Lazy sync.
+triggers_hooks = false
+
 [[hook]]
 name = "bootstrap"
 when = { os = "linux" }
@@ -60,3 +70,433 @@ name = "bootstrap-macos"
 when = { os = "macos" }
 script = "hooks/bootstrap.sh"
 optional = true
+
+# ---------------------------------------------------------------- opções
+# Geradas por scripts/gen-editor-options.py; o app mostra na ordem abaixo,
+# agrupadas por seção. Vão para files/hiraku.json, que o editor lê e reaplica ao vivo.
+
+[options.colorscheme]
+type = "choice"
+default = "auto"
+values = ["auto", "maria_isabel", "jales", "camelo", "sassa", "malvadao", "mateus_sao_paulino", "pedro_de", "belchior", "lucas_ribeiro", "alan_turing", "alan_turing_antiresenha", "henrique", "off_light", "geraldo", "cabeludo", "cookie", "ruiva", "baiana", "do_mal", "sofia", "guerra", "soares", "biscoitinho", "gvsl", "jf", "toyman", "massoni", "dijkstra", "ever_dream_this_man", "raul", "acesso_negado", "espresso", "plum", "flatui", "neocybervim", "sunbather", "tatami", "lucid", "lucario", "roti", "hotdog", "macvim_light", "farout", "burgundy", "petra", "tokyonight-night", "c", "kanagawa", "rose-pine", "nightfox", "carbonfox"]
+label = "Tema"
+section = "Aparência"
+description = "Colorscheme do editor. \"O último escolhido no editor\" deixa a troca com F3/:Th."
+preview = "../icaro-themes/files/icaro-theme/colors/{value}.vim"
+[options.colorscheme.labels]
+"auto" = "O último escolhido no editor"
+"maria_isabel" = "Maria Isabel"
+"jales" = "Jales"
+"camelo" = "Camelo"
+"sassa" = "Iogurte"
+"malvadao" = "Malvadão"
+"mateus_sao_paulino" = "Mateus São Paulino"
+"pedro_de" = "Pedro de..."
+"belchior" = "Belchior"
+"lucas_ribeiro" = "Lucas Ribeiro?"
+"alan_turing" = "Alan Turing"
+"alan_turing_antiresenha" = "Alan Turing"
+"henrique" = "Henrique"
+"off_light" = "Of(f) Light"
+"geraldo" = "Geraldo"
+"cabeludo" = "Cabeludo"
+"cookie" = "Cookie"
+"ruiva" = "Ruiva"
+"baiana" = "Baiana"
+"do_mal" = "Do Mal"
+"sofia" = "Paz"
+"guerra" = "Guerra"
+"soares" = "Soares"
+"biscoitinho" = "Biscoitinho"
+"gvsl" = "GVSL"
+"jf" = "JF"
+"toyman" = "ToyMan"
+"massoni" = "Massoni"
+"dijkstra" = "Dijkstra"
+"ever_dream_this_man" = "Ever Dream This Man?"
+"raul" = "Raul"
+"acesso_negado" = "ACESSO NEGADO"
+"espresso" = "De cujos"
+"plum" = "Titio"
+"flatui" = "Animes"
+"neocybervim" = "Cavaleiro do apocalipse"
+"sunbather" = "Guardians"
+"tatami" = "Shampoo de..."
+"lucid" = "Cuti Cuti"
+"lucario" = "Eurico"
+"roti" = "Do bem"
+"hotdog" = "Héctor"
+"macvim_light" = "JA"
+"farout" = "Holanda"
+"burgundy" = "Ela também é maligna..."
+"petra" = "Sonhei com você essa noite"
+"tokyonight-night" = "EULLER D. NOBREGA"
+"c" = "PKJ Master"
+"kanagawa" = "Trompete"
+"rose-pine" = "o do LOL"
+"nightfox" = "Protegido"
+"carbonfox" = "POR MIM"
+
+[options.transparent]
+type = "bool"
+default = false
+label = "Fundo transparente"
+section = "Aparência"
+description = "Usa o fundo do terminal no lugar do fundo do tema (combina com a opacidade do kitty)."
+
+[options.number]
+type = "bool"
+default = true
+label = "Numeração das linhas"
+section = "Aparência"
+
+[options.relativenumber]
+type = "bool"
+default = true
+label = "Numeração relativa"
+section = "Aparência"
+description = "Mostra a distância até o cursor (bom para 5j, 3dd...)."
+
+[options.cursorline]
+type = "bool"
+default = true
+label = "Realçar a linha do cursor"
+section = "Aparência"
+
+[options.cursorcolumn]
+type = "bool"
+default = false
+label = "Realçar a coluna do cursor"
+section = "Aparência"
+
+[options.colorcolumn]
+type = "choice"
+default = "0"
+values = ["0", "80", "100", "120"]
+label = "Linha-guia vertical"
+section = "Aparência"
+description = "Uma coluna marcada para limitar o comprimento das linhas."
+[options.colorcolumn.labels]
+"0" = "Nenhuma"
+"80" = "80"
+"100" = "100"
+"120" = "120"
+
+[options.signcolumn]
+type = "choice"
+default = "yes"
+values = ["yes", "auto", "no", "number"]
+label = "Coluna de sinais"
+section = "Aparência"
+description = "Espaço à esquerda para erros, git e marcas."
+[options.signcolumn.labels]
+"yes" = "Sempre"
+"auto" = "Quando houver"
+"no" = "Nunca"
+"number" = "Junto da numeração"
+
+[options.list]
+type = "bool"
+default = true
+label = "Mostrar tabs e espaços no fim"
+section = "Aparência"
+
+[options.wrap]
+type = "bool"
+default = false
+label = "Quebrar linhas longas"
+section = "Aparência"
+
+[options.linebreak]
+type = "bool"
+default = true
+label = "Quebrar entre palavras"
+section = "Aparência"
+description = "Só vale com a quebra de linhas ligada."
+
+[options.scrolloff]
+type = "number"
+default = 10
+min = 0
+max = 30
+label = "Linhas de contexto ao rolar"
+section = "Aparência"
+description = "Quantas linhas ficam visíveis acima/abaixo do cursor."
+
+[options.nerd_font]
+type = "bool"
+default = true
+label = "Ícones (Nerd Font)"
+section = "Aparência"
+description = "Ícones na árvore de arquivos, abas e barra de status."
+
+[options.leader]
+type = "choice"
+default = "space"
+values = ["space", "comma", "backslash"]
+label = "Tecla líder (<leader>)"
+section = "Edição"
+description = "A tecla que começa os atalhos <leader>... Trocar muda todos esses atalhos."
+[options.leader.labels]
+"space" = "Espaço"
+"comma" = "Vírgula"
+"backslash" = "Barra invertida"
+
+[options.tabsize]
+type = "number"
+default = 4
+min = 1
+max = 8
+label = "Tamanho da indentação"
+section = "Edição"
+description = "Colunas por nível (tabstop, shiftwidth e softtabstop)."
+
+[options.expandtab]
+type = "bool"
+default = true
+label = "Indentar com espaços"
+section = "Edição"
+description = "Desligado, usa o caractere TAB."
+
+[options.autopairs]
+type = "bool"
+default = true
+label = "Fechar parênteses e aspas sozinho"
+section = "Edição"
+
+[options.mouse]
+type = "choice"
+default = "a"
+values = ["a", "nv", "off"]
+label = "Mouse"
+section = "Edição"
+[options.mouse.labels]
+"a" = "Em todos os modos"
+"nv" = "Só normal e visual"
+"off" = "Desligado"
+
+[options.undofile]
+type = "bool"
+default = true
+label = "Desfazer mesmo depois de fechar"
+section = "Edição"
+description = "Guarda o histórico de undo em disco."
+
+[options.swapfile]
+type = "bool"
+default = false
+label = "Arquivo de recuperação (swap)"
+section = "Edição"
+
+[options.confirm]
+type = "bool"
+default = true
+label = "Perguntar antes de perder alterações"
+section = "Edição"
+description = "Ao sair com :q de um arquivo não salvo."
+
+[options.splitright]
+type = "bool"
+default = true
+label = "Divisões verticais abrem à direita"
+section = "Edição"
+
+[options.splitbelow]
+type = "bool"
+default = true
+label = "Divisões horizontais abrem embaixo"
+section = "Edição"
+
+[options.clipboard]
+type = "choice"
+default = "system"
+values = ["system", "separate"]
+label = "Área de transferência"
+section = "Copiar, recortar e colar"
+description = "Integrada: y, d e p usam a área de transferência do sistema (Ctrl+V cola fora do editor). Separada: só \"+y copia para o sistema."
+[options.clipboard.labels]
+"system" = "Integrada ao sistema"
+"separate" = "Separada"
+
+[options.delete_mode]
+type = "choice"
+default = "copy"
+values = ["copy", "blackhole", "x_only"]
+label = "O que acontece ao apagar (dd, x, c...)"
+section = "Copiar, recortar e colar"
+description = "\"Apagar não copia\": d, c, x e s jogam o texto fora sem mexer no que você copiou; para recortar, use <leader>d. \"Só x e c\": d continua recortando, x/c/s não copiam."
+[options.delete_mode.labels]
+"copy" = "Apagar também copia (padrão do Vim)"
+"blackhole" = "Apagar não copia"
+"x_only" = "Só x e c não copiam"
+
+[options.paste_keeps]
+type = "bool"
+default = true
+label = "Colar por cima não perde o que foi copiado"
+section = "Copiar, recortar e colar"
+description = "No modo visual, p substitui a seleção sem trocar o conteúdo copiado."
+
+[options.yank_highlight]
+type = "bool"
+default = true
+label = "Piscar o texto copiado"
+section = "Copiar, recortar e colar"
+
+[options.ignorecase]
+type = "bool"
+default = true
+label = "Ignorar maiúsculas na busca"
+section = "Busca"
+
+[options.smartcase]
+type = "bool"
+default = true
+label = "...a não ser que a busca tenha maiúscula"
+section = "Busca"
+
+[options.hlsearch]
+type = "bool"
+default = true
+label = "Destacar os resultados"
+section = "Busca"
+
+[options.incsearch]
+type = "bool"
+default = true
+label = "Buscar enquanto digita"
+section = "Busca"
+
+[options.timeoutlen]
+type = "number"
+default = 400
+min = 100
+max = 2000
+label = "Tempo para completar um atalho (ms)"
+section = "Atalhos"
+description = "Quanto o editor espera pela próxima tecla de um atalho com várias teclas."
+
+[options.keymaps]
+type = "keymaps"
+label = "Meus atalhos"
+section = "Atalhos"
+description = "Valem por cima dos atalhos do Ícaro. Para desativar um atalho existente, use <Nop> como ação."
+
+[options.plugin_neo_tree]
+type = "bool"
+default = true
+label = "Árvore de arquivos (Neo-tree, F2)"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_telescope]
+type = "bool"
+default = true
+label = "Busca de arquivos e texto (Telescope)"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_which_key]
+type = "bool"
+default = true
+label = "Ajuda de atalhos ao digitar (which-key)"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_bufferline]
+type = "bool"
+default = true
+label = "Abas de buffers no topo"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_lualine]
+type = "bool"
+default = true
+label = "Barra de status (lualine)"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_dashboard]
+type = "bool"
+default = true
+label = "Tela inicial (dashboard)"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_gitsigns]
+type = "bool"
+default = true
+label = "Marcas de git na margem"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_noice]
+type = "bool"
+default = true
+label = "Linha de comando e mensagens flutuantes (noice)"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_notify]
+type = "bool"
+default = true
+label = "Notificações (nvim-notify)"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_indent_blankline]
+type = "bool"
+default = true
+label = "Guias de indentação"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_indent_scope]
+type = "bool"
+default = true
+label = "Destaque do bloco atual (mini.indentscope)"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_todo_comments]
+type = "bool"
+default = true
+label = "Destacar TODO/FIXME"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_trouble]
+type = "bool"
+default = true
+label = "Lista de erros (trouble)"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_illuminate]
+type = "bool"
+default = true
+label = "Destacar outras ocorrências da palavra"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_cursorword]
+type = "bool"
+default = true
+label = "Sublinhar a palavra sob o cursor"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_scrollbar]
+type = "bool"
+default = true
+label = "Barra de rolagem com marcas"
+section = "Plugins"
+description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.extra]
+type = "lines"
+default = ""
+label = "Configuração extra"
+section = "Avançado"
+description = "Código Lua executado por último, a cada vez que as opções são aplicadas. Para o que não tem botão aqui."

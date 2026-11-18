@@ -360,6 +360,7 @@ mod tests {
             kind: OptKind::Choice(vec!["navy".into(), "nord".into()]),
             default: "navy".into(),
             description: String::new(),
+            ..Default::default()
         }
     }
 

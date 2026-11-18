@@ -17,7 +17,7 @@ use crate::env::Environment;
 use crate::error::{io_err, Error, Result};
 use crate::event::{Event, EventSink};
 use crate::lockfile::now_secs;
-use crate::manifest::{is_safe_relative, BlockSpec, ConfigEntry, ConfigMode, Manifest, OptionDef};
+use crate::manifest::{is_safe_relative, BlockSpec, ConfigEntry, ConfigMode, Manifest, OptionKind};
 use crate::paths::expand_path;
 use crate::release::sha256_hex_of;
 
@@ -47,6 +47,9 @@ pub enum Outcome {
 pub struct FileReport {
     pub dest: PathBuf,
     pub outcome: Outcome,
+    /// Veio de um `[[config]]` com `triggers_hooks = false`: mudar este arquivo não
+    /// dispara os hooks `on = "change"` do módulo.
+    pub quiet: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -76,10 +79,8 @@ pub fn resolve_options(
     let mut out = BTreeMap::new();
     for (key, def) in &manifest.options {
         let chosen = choices.get(key);
-        let value = match def {
-            OptionDef::Choice {
-                values, default, ..
-            } => {
+        let value = match &def.kind {
+            OptionKind::Choice { values, default, .. } => {
                 let v = chosen.cloned().unwrap_or_else(|| default.clone());
                 if !values.contains(&v) {
                     return Err(bad(format!(
@@ -89,7 +90,7 @@ pub fn resolve_options(
                 }
                 v
             }
-            OptionDef::Bool { default, .. } => match chosen.map(String::as_str) {
+            OptionKind::Bool { default } => match chosen.map(String::as_str) {
                 None => default.to_string(),
                 Some("true") => "true".to_string(),
                 Some("false") => "false".to_string(),
@@ -99,12 +100,11 @@ pub fn resolve_options(
                     )))
                 }
             },
-            OptionDef::Number {
+            OptionKind::Number {
                 min,
                 max,
                 default,
                 divisor,
-                ..
             } => {
                 let n = match chosen {
                     None => *default,
@@ -119,13 +119,66 @@ pub fn resolve_options(
                 }
                 format_scaled(n, *divisor)
             }
-            OptionDef::Text { default, .. } => {
+            OptionKind::Text { default } | OptionKind::Lines { default } => {
                 chosen.cloned().unwrap_or_else(|| default.clone())
+            }
+            OptionKind::Color { default } => {
+                let v = chosen.cloned().unwrap_or_else(|| default.clone());
+                if !is_hex_color(&v) {
+                    return Err(bad(format!("opção '{key}': '{v}' não é uma cor #rrggbb")));
+                }
+                v
+            }
+            OptionKind::Keymaps { default } => {
+                let v = chosen.cloned().unwrap_or_else(|| default.clone());
+                check_keymaps(&v).map_err(|e| bad(format!("opção '{key}': {e}")))?;
+                v
             }
         };
         out.insert(key.clone(), value);
     }
     Ok(out)
+}
+
+/// `#rrggbb`.
+pub fn is_hex_color(v: &str) -> bool {
+    v.len() == 7 && v.starts_with('#') && v[1..].chars().all(|c| c.is_ascii_hexdigit())
+}
+
+/// Modos válidos de um atalho (letras do vim: normal, inserção, visual, seleção
+/// visual, operador pendente, linha de comando, terminal).
+const KEYMAP_MODES: &str = "nivxoct";
+
+/// Confere a lista de atalhos (JSON). Cada item: `mode` (uma ou mais letras de
+/// "nivxoct"), `lhs` e `rhs` não vazios; `desc` e `remap` opcionais.
+pub fn check_keymaps(json: &str) -> std::result::Result<(), String> {
+    let value: serde_json::Value =
+        serde_json::from_str(json).map_err(|e| format!("lista de atalhos não é JSON válido: {e}"))?;
+    let items = value.as_array().ok_or("a lista de atalhos deve ser um array")?;
+    for (i, item) in items.iter().enumerate() {
+        let n = i + 1;
+        let obj = item.as_object().ok_or(format!("atalho {n}: deve ser um objeto"))?;
+        let text = |k: &str| obj.get(k).and_then(|v| v.as_str()).unwrap_or("");
+        let mode = text("mode");
+        if mode.is_empty() || !mode.chars().all(|c| KEYMAP_MODES.contains(c)) {
+            return Err(format!("atalho {n}: modo '{mode}' inválido (use letras de {KEYMAP_MODES})"));
+        }
+        if text("lhs").trim().is_empty() {
+            return Err(format!("atalho {n}: falta a tecla"));
+        }
+        if text("rhs").is_empty() {
+            return Err(format!("atalho {n} ({}): falta a ação (use <Nop> para desativar)", text("lhs")));
+        }
+        for k in ["mode", "lhs", "rhs", "desc"] {
+            if obj.get(k).is_some_and(|v| !v.is_string()) {
+                return Err(format!("atalho {n}: '{k}' deve ser texto"));
+            }
+        }
+        if obj.get("remap").is_some_and(|v| !v.is_boolean()) {
+            return Err(format!("atalho {n}: 'remap' deve ser true/false"));
+        }
+    }
+    Ok(())
 }
 
 /// `85` com divisor 100 vira `0.85`; com divisor 1 continua `85`.
@@ -148,11 +201,25 @@ pub fn render_template(src: &str, vars: &BTreeMap<String, String>) -> Result<Str
         let end = after.find("}}").ok_or_else(|| {
             Error::Unsupported("template: '{{' sem '}}' correspondente".to_string())
         })?;
-        let name = after[..end].trim();
+        // `{{ nome }}` insere o valor como está; `{{ nome | json }}` insere como string
+        // JSON (aspas e escapes); `{{ nome | onoff }}` troca true/false por on/off.
+        let expr = after[..end].trim();
+        let (name, filter) = match expr.split_once('|') {
+            Some((n, f)) => (n.trim(), Some(f.trim())),
+            None => (expr, None),
+        };
         let value = vars.get(name).ok_or_else(|| {
             Error::Unsupported(format!("template: variável desconhecida '{name}'"))
         })?;
-        out.push_str(value);
+        match filter {
+            None => out.push_str(value),
+            Some("json") => out.push_str(&serde_json::Value::String(value.clone()).to_string()),
+            // Booleans no formato do tmux.
+            Some("onoff") => out.push_str(if value == "true" { "on" } else { "off" }),
+            Some(other) => {
+                return Err(Error::Unsupported(format!("template: filtro desconhecido '{other}'")))
+            }
+        }
         rest = &after[end + 2..];
     }
     out.push_str(rest);
@@ -547,6 +614,7 @@ fn push_report(
     module: &str,
     dest: PathBuf,
     outcome: Outcome,
+    quiet: bool,
     sink: &mut dyn EventSink,
 ) {
     match outcome {
@@ -560,7 +628,7 @@ fn push_report(
             line: format!("{other:?}: {}", dest.display()),
         }),
     }
-    reports.push(FileReport { dest, outcome });
+    reports.push(FileReport { dest, outcome, quiet });
 }
 
 /// Aplica todos os `[[config]]` do módulo. O estado em memória é atualizado arquivo
@@ -627,13 +695,13 @@ pub fn apply_module_configs(
                 text = render_template(&text, &vars)?;
             }
             let outcome = apply_block(&ctx, entry, spec, &dest_root, &text)?;
-            push_report(&mut reports, &manifest.id, dest_root, outcome, sink);
+            push_report(&mut reports, &manifest.id, dest_root, outcome, !entry.triggers_hooks, sink);
             continue;
         }
 
         if entry.mode == ConfigMode::Symlink {
             let outcome = link_entry(&ctx, &src_root, &dest_root)?;
-            push_report(&mut reports, &manifest.id, dest_root, outcome, sink);
+            push_report(&mut reports, &manifest.id, dest_root, outcome, !entry.triggers_hooks, sink);
             continue;
         }
 
@@ -658,7 +726,7 @@ pub fn apply_module_configs(
                 theirs = render_template(&text, &vars)?.into_bytes();
             }
             let outcome = sync_file(&ctx, entry, &dest, &src_file, theirs, state)?;
-            push_report(&mut reports, &manifest.id, dest, outcome, sink);
+            push_report(&mut reports, &manifest.id, dest, outcome, !entry.triggers_hooks, sink);
         }
     }
     Ok(reports)
@@ -727,6 +795,33 @@ pub fn resolve_conflict(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn template_json_filter_escapes_strings() {
+        let mut vars = BTreeMap::new();
+        vars.insert("a".to_string(), "linha 1\n\"aspas\" e \\".to_string());
+        vars.insert("n".to_string(), "8".to_string());
+        let out = render_template("{ \"a\": {{ a | json }}, \"n\": {{n}} }", &vars).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(parsed["a"], "linha 1\n\"aspas\" e \\");
+        assert_eq!(parsed["n"], 8);
+        assert!(render_template("{{ a | upper }}", &vars).is_err());
+        vars.insert("b".to_string(), "true".to_string());
+        assert_eq!(render_template("set -g mouse {{ b | onoff }}", &vars).unwrap(), "set -g mouse on");
+    }
+
+    #[test]
+    fn keymaps_and_colors_are_validated() {
+        assert!(check_keymaps("[]").is_ok());
+        assert!(check_keymaps(r#"[{"mode":"nv","lhs":"dd","rhs":"\"_dd","desc":"x","remap":false}]"#).is_ok());
+        assert!(check_keymaps(r#"[{"mode":"q","lhs":"dd","rhs":"x"}]"#).unwrap_err().contains("modo"));
+        assert!(check_keymaps(r#"[{"mode":"n","lhs":"","rhs":"x"}]"#).unwrap_err().contains("tecla"));
+        assert!(check_keymaps(r#"[{"mode":"n","lhs":"x","rhs":""}]"#).unwrap_err().contains("<Nop>"));
+        assert!(check_keymaps(r#"{"mode":"n"}"#).is_err());
+        assert!(check_keymaps("não é json").is_err());
+        assert!(is_hex_color("#1A2b3c"));
+        assert!(!is_hex_color("1a2b3c") && !is_hex_color("#12345g") && !is_hex_color("#123"));
+    }
+
     use super::*;
     use crate::env::{Arch, Os, Privilege};
     use crate::event::VecSink;

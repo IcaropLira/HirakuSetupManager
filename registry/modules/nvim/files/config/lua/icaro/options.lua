@@ -54,3 +54,6 @@ if vim.fn.has("nvim-0.11") == 1 then o.winborder = "rounded" end
 
 vim.g.loaded_netrw = 1       -- o explorer é o neo-tree (F2)
 vim.g.loaded_netrwPlugin = 1
+
+-- Por cima dos padrões acima: o que foi escolhido no Hiraku Setup Manager.
+require("icaro.hiraku").apply_options()

@@ -74,8 +74,10 @@ function optValue(spec, settings) {
   return v === undefined ? spec.default : v;
 }
 function sortedSpecs(mods) {
-  const rank = s => ({ choice: 0, number: 1, bool: 2, text: 3 })[s.kind.type];
-  return mods.flatMap(m => [...m.options].sort((a, b) => rank(a) - rank(b) || a.key.localeCompare(b.key)));
+  const rank = s => ({ choice: 0, number: 1, bool: 2, text: 3, color: 3, lines: 4, keymaps: 4 })[s.kind.type];
+  // Módulos com seções (vim, nvim, tmux) seguem a ordem do manifest.
+  return mods.flatMap(m => m.options.some(o => o.section) ? [...m.options]
+    : [...m.options].sort((a, b) => rank(a) - rank(b) || a.key.localeCompare(b.key)));
 }
 function withDeps(ids) {
   const out = new Set(), stack = [...ids];
@@ -87,7 +89,7 @@ function withDeps(ids) {
   }
   return catalog().filter(m => out.has(m.id)).map(m => m.id);
 }
-const prettyKey = k => ({ palette: "Paleta de cores", opacity: "Opacidade", blur: "Desfoque", visualizer: "Ao abrir o terminal", fastfetch_color: "Cor do fastfetch", neofetch_color: "Cor do neofetch" })[k] || k.replace(/_/g, " ");
+const prettyKey = k => ({ palette: "Paleta de cores", opacity: "Opacidade", blur: "Desfoque", visualizer: "Ao abrir o terminal", fastfetch_color: "Cor do fastfetch", neofetch_color: "Cor do neofetch" })[k] || (k.charAt(0).toUpperCase() + k.slice(1)).replace(/_/g, " ");
 const STATUS = { installed: ["✓", "ok", "instalado"], updated: ["↑", "ok", "atualizado"], unchanged: ["✓", "ok", "em dia"], config_only: ["✓", "ok", "configs aplicadas"], skipped: ["↷", "warn", "pulado"], unsupported: ["–", "", "não suportado"], failed: ["✗", "err", "falhou"] };
 
 // ------------------------------------------------------------------ aparência do app
@@ -201,32 +203,73 @@ function viewModules() {
 }
 
 // ------------------------------------------------------------------ Personalizar (também usado no assistente)
+const MODE_LABELS = [["n", "Normal"], ["i", "Inserção"], ["v", "Visual"], ["nv", "Normal + Visual"], ["x", "Só visual"], ["t", "Terminal"], ["c", "Linha de comando"], ["o", "Operador"]];
+const KEYMAP_PRESETS = [
+  ["jk sai do modo inserção", { mode: "i", lhs: "jk", rhs: "<Esc>", desc: "Sair do modo inserção" }],
+  ["<leader>y copia para o sistema", { mode: "nv", lhs: "<leader>y", rhs: "\"+y", desc: "Copiar para a área de transferência" }],
+  ["<leader>p cola do sistema", { mode: "nv", lhs: "<leader>p", rhs: "\"+p", desc: "Colar da área de transferência" }],
+  ["Ctrl+A seleciona tudo", { mode: "n", lhs: "<C-a>", rhs: "ggVG", desc: "Selecionar tudo" }],
+  ["Y copia até o fim da linha", { mode: "n", lhs: "Y", rhs: "y$", desc: "Copiar até o fim da linha" }],
+  ["Alt+Z liga/desliga quebra de linha", { mode: "n", lhs: "<A-z>", rhs: "<Cmd>set wrap!<CR>", desc: "Quebra de linha" }],
+  ["<leader>a salva todos os arquivos", { mode: "n", lhs: "<leader>a", rhs: "<Cmd>wall<CR>", desc: "Salvar tudo" }],
+  ["Desativar Q (modo Ex)", { mode: "n", lhs: "Q", rhs: "<Nop>", desc: "Desativado" }],
+];
+const TMUX_PRESETS = [
+  ["Alt+Z maximiza o painel", "bind -n M-z resize-pane -Z"],
+  ["Alt+1…5 vai para a janela", "bind -n M-1 select-window -t 1\nbind -n M-2 select-window -t 2\nbind -n M-3 select-window -t 3\nbind -n M-4 select-window -t 4\nbind -n M-5 select-window -t 5"],
+  ["Prefixo + S sincroniza painéis", "bind S setw synchronize-panes"],
+  ["Prefixo + e edita o tmux.conf", "bind e new-window -n tmux.conf \"$EDITOR ~/.tmux.conf\""],
+  ["Desativar Ctrl+Z (suspender)", "unbind -n C-z"],
+];
+
+const specLabel = s => s.label || prettyKey(s.key);
+const valueLabel = (s, v) => (s.labels && s.labels[v]) || (v === "" ? "(vazio)" : v);
+const sectionsOf = specs => [...new Set(specs.map(s => s.section || ""))];
+
 function customHTML(mods, settings, opts = {}) {
   const sections = mods.filter(m => m.options.length).map(m => {
-    const specs = sortedSpecs([m]);
-    const rows = specs.map(s => optionRow(s, settings)).join("");
+    let specs = sortedSpecs([m]);
+    // No assistente, dos editores só a aparência (o resto fica para o hub).
+    if (opts.wizard) specs = specs.filter(s => !s.section || s.section === "Aparência");
+    if (!specs.length) return "";
+    const groups = sectionsOf(specs).map(sec => {
+      const rows = specs.filter(s => (s.section || "") === sec).map(s => optionRow(s, settings)).join("");
+      return `${sec ? `<div class="st-sec">${esc(sec)}</div>` : ""}${rows}`;
+    }).join("");
     const hasTerm = m.options.some(o => o.key === "palette") && m.options.some(o => o.key === "opacity");
     const off = !opts.wizard && !enabled(m.id) ? `<span class="tag">desabilitado</span>` : "";
-    return `<section class="cz-sec glass" id="cz-${m.id}"><header><span class="pj-tile">${esc(GLYPH[m.id] || m.name[0])}</span><h3>${esc(m.name)}</h3>${off}</header>
-      ${hasTerm ? `<div class="termwrap"><div class="term" data-term="${m.id}"></div></div>` : ""}${rows}</section>`;
-  });
+    const live = !opts.wizard && ["vim", "nvim", "tmux"].includes(m.id)
+      ? `<span class="tag acc" title="O ${esc(m.name)} aberto percebe a mudança e reaplica sozinho">aplica com ele aberto</span>` : "";
+    return `<section class="cz-sec glass" id="cz-${m.id}"><header><span class="pj-tile">${esc(GLYPH[m.id] || m.name[0])}</span><h3>${esc(m.name)}</h3>${live}${off}</header>
+      ${hasTerm ? `<div class="termwrap"><div class="term" data-term="${m.id}"></div></div>` : ""}${groups}</section>`;
+  }).filter(Boolean);
   if (!sections.length) return `<div class="hx-panel mut">Nenhum módulo escolhido tem opções.</div>`;
   if (opts.wizard) return sections.join("");
   const rail = mods.filter(m => m.options.length).map(m => `<button data-jump="${m.id}">${esc(m.name)}<span class="mut">${m.options.length}</span></button>`).join("");
   return `<div class="cz"><div class="cz-rail glass" role="navigation" aria-label="Módulos">${rail}</div><div>${sections.join("")}</div></div>`;
 }
+
 function optionRow(spec, settings) {
   const v = optValue(spec, settings), custom = v !== spec.default;
-  const reset = custom ? `<button class="reset" data-reset="${spec.module}.${spec.key}">voltar ao padrão</button>` : "";
-  const lbl = `<div class="st-lbl"><b>${esc(prettyKey(spec.key))}${reset}</b><small>${esc(spec.description)}</small></div>`;
   const id = `${spec.module}.${spec.key}`;
+  const reset = custom ? `<button class="reset" data-reset="${id}">voltar ao padrão</button>` : "";
+  const lbl = `<div class="st-lbl"><b>${esc(specLabel(spec))}${reset}</b>${spec.description ? `<small>${esc(spec.description)}</small>` : ""}</div>`;
   switch (spec.kind.type) {
     case "choice": {
       const vals = spec.kind.data;
-      if (spec.key === "palette" || vals.length > 6) {
-        return `<div class="st-row col">${lbl}<div class="th-grid" data-pal="${id}">${vals.map(x => `<button class="th-card ${x === v ? "on" : ""}" data-set="${id}" data-val="${esc(x)}"><div class="th-prev" data-pv="${esc(x)}"></div><span>${esc(x)}</span></button>`).join("")}</div></div>`;
+      if (spec.has_preview || spec.key === "palette") {
+        const search = vals.length > 12 ? `<input class="txt th-search" placeholder="Filtrar ${vals.length} opções…" data-filter-grid="${id}">` : "";
+        const code = spec.key !== "palette";
+        return `<div class="st-row col">${lbl}${search}<div class="th-grid ${code ? "code" : ""}" data-pal="${id}">${vals.map(x => `<button class="th-card ${x === v ? "on" : ""}" data-set="${id}" data-val="${esc(x)}" data-name="${esc((valueLabel(spec, x) + " " + x).toLowerCase())}"><div class="th-prev" data-pv="${esc(x)}"></div><span>${esc(valueLabel(spec, x))}</span></button>`).join("")}</div></div>`;
       }
-      return `<div class="st-row">${lbl}<div class="seg">${vals.map(x => `<button class="${x === v ? "on" : ""}" data-set="${id}" data-val="${esc(x)}">${esc(x)}</button>`).join("")}</div></div>`;
+      const long = vals.some(x => valueLabel(spec, x).length > 22);
+      if (vals.length > 6) {
+        return `<div class="st-row">${lbl}<select class="txt" data-select="${id}">${vals.map(x => `<option value="${esc(x)}" ${x === v ? "selected" : ""}>${esc(valueLabel(spec, x))}</option>`).join("")}</select></div>`;
+      }
+      if (long) {
+        return `<div class="st-row col">${lbl}<div class="radio-list">${vals.map(x => `<button class="radio ${x === v ? "on" : ""}" data-set="${id}" data-val="${esc(x)}"><i></i>${esc(valueLabel(spec, x))}</button>`).join("")}</div></div>`;
+      }
+      return `<div class="st-row">${lbl}<div class="seg">${vals.map(x => `<button class="${x === v ? "on" : ""}" data-set="${id}" data-val="${esc(x)}">${esc(valueLabel(spec, x))}</button>`).join("")}</div></div>`;
     }
     case "number": {
       const { min, max, divisor } = spec.kind.data;
@@ -235,12 +278,56 @@ function optionRow(spec, settings) {
     }
     case "bool":
       return `<div class="st-row">${lbl}<label class="sw"><input type="checkbox" data-bool="${id}" ${v === "true" ? "checked" : ""}><i></i></label></div>`;
+    case "color":
+      return `<div class="st-row">${lbl}<div class="colorpick"><input type="color" value="${esc(v)}" data-color="${id}"><input class="txt" value="${esc(v)}" data-colortext="${id}" maxlength="7" spellcheck="false"></div></div>`;
+    case "lines": {
+      const presets = spec.module === "tmux" ? `<div class="bar presets">${TMUX_PRESETS.map(([t], i) => `<button class="chip" data-lines-preset="${id}" data-i="${i}">+ ${esc(t)}</button>`).join("")}</div>` : "";
+      return `<div class="st-row col">${lbl}${presets}<textarea class="code-edit" rows="${Math.min(14, Math.max(4, v.split("\n").length + 1))}" data-lines="${id}" spellcheck="false" placeholder="${spec.module === "tmux" ? "bind -n M-z resize-pane -Z" : spec.module === "nvim" ? "vim.opt.spelllang = 'pt_br'" : "set spelllang=pt_br"}">${esc(v)}</textarea><small class="mut">Grava ao sair do campo.</small></div>`;
+    }
+    case "keymaps":
+      return `<div class="st-row col">${lbl}${keymapsEditor(id, v)}</div>`;
     default:
       return `<div class="st-row">${lbl}<input class="txt" data-text="${id}" value="${esc(v)}" spellcheck="false"></div>`;
   }
 }
+
+function parseKeymaps(json) {
+  try { const a = JSON.parse(json); return Array.isArray(a) ? a : []; } catch { return []; }
+}
+function keymapRow(k) {
+  return `<div class="km-row"><select class="txt" data-k="mode">${MODE_LABELS.map(([m, t]) => `<option value="${m}" ${k.mode === m ? "selected" : ""}>${t}</option>`).join("")}</select>
+    <input class="txt" data-k="lhs" value="${esc(k.lhs || "")}" placeholder="tecla, ex.: <leader>w" spellcheck="false">
+    <input class="txt" data-k="rhs" value="${esc(k.rhs || "")}" placeholder="ação, ex.: <Cmd>w<CR>" spellcheck="false">
+    <input class="txt" data-k="desc" value="${esc(k.desc || "")}" placeholder="descrição (opcional)">
+    <button class="x" data-km-del title="Remover">✕</button></div>`;
+}
+function keymapsEditor(id, json) {
+  const list = parseKeymaps(json);
+  return `<div class="km" data-km="${id}">
+    <div class="km-head"><span>Modo</span><span>Tecla</span><span>Ação</span><span>Descrição</span><span></span></div>
+    <div class="km-rows">${list.map(keymapRow).join("") || ""}</div>
+    <div class="km-empty mut" ${list.length ? "hidden" : ""}>Nenhum atalho seu ainda.</div>
+    <div class="bar"><button class="hx-btn ghost sm" data-km-add>+ Adicionar atalho</button><select class="txt" data-km-preset><option value="">Prontos…</option>${KEYMAP_PRESETS.map(([t], i) => `<option value="${i}">${esc(t)}</option>`).join("")}</select></div>
+    <small class="mut">Notação do Vim: <code>&lt;C-s&gt;</code> Ctrl+S · <code>&lt;A-x&gt;</code> Alt+X · <code>&lt;leader&gt;</code> sua tecla líder · <code>&lt;CR&gt;</code> Enter · <code>&lt;Cmd&gt;…&lt;CR&gt;</code> comando · <code>&lt;Nop&gt;</code> desativa a tecla.</small>
+  </div>`;
+}
+
+function themePreviewHTML(p) {
+  // Paleta de colorscheme (bg0, fg0, comment, red/green/amber/blue…) ou do kitty.
+  const pick = (...names) => { for (const n of names) if (p[n]) return p[n]; };
+  const bg = pick("bg0", "bg", "background", "bg1"), fg = pick("fg0", "fg", "foreground", "fg1");
+  const kw = pick("red", "purple", "magenta", "pink", "keyword", "color5"), str = pick("green", "string", "color2");
+  const fn = pick("blue", "cyan", "aqua", "func", "color4"), num = pick("amber", "orange", "yellow", "gold", "color3");
+  const cm = pick("comment", "grey", "gray", "fg2", "color8") || fg;
+  return { bg, html: `<pre style="color:${fg}"><span style="color:${cm}">-- ${"exemplo"}</span>\n<span style="color:${kw}">local</span> n = <span style="color:${num}">42</span>\n<span style="color:${fn}">print</span>(<span style="color:${str}">"oi"</span>)</pre>` };
+}
+
 /** Liga os controles de opção. `onChange(spec, valor|null)` grava (hub) ou edita o rascunho (assistente). */
 function hydrateCustom(root, settings, onChange) {
+  // A mesma raiz (#view) é redesenhada várias vezes: troca os ouvintes, não acumula.
+  if (root._hydrated) root._hydrated.abort();
+  const ctl = root._hydrated = new AbortController();
+  const listen = (type, fn) => root.addEventListener(type, fn, { signal: ctl.signal });
   const specOf = id => { const [m, k] = id.split("."); return modInfo(m)?.options.find(o => o.key === k); };
   const term = mod => {
     const el = root.querySelector(`[data-term="${mod}"]`);
@@ -257,15 +344,22 @@ function hydrateCustom(root, settings, onChange) {
 <span style="color:${c(2)}">✓</span> kitty atualizado  <span style="color:${c(3)}">⚠ 1 conflito</span>  <span style="color:${c(1)}">✗ 0 erros</span>
 <span style="color:${c(6)}">paleta</span> ${esc(get("palette"))} · opacidade ${esc(get("opacity"))}%</pre>`;
   };
-  // Pré-visualizações das paletas (cores reais dos arquivos do módulo).
+  // Pré-visualizações: paletas do kitty (cores) e colorschemes (código colorido).
   $$("[data-pal]", root).forEach(async grid => {
     const [m, k] = grid.dataset.pal.split(".");
     const map = await previews(m, k);
+    const code = grid.classList.contains("code");
     $$("[data-pv]", grid).forEach(el => {
       const p = map[el.dataset.pv];
-      if (!p) { el.style.background = "var(--bg)"; return; }
-      el.style.background = p.background;
-      el.innerHTML = `<i style="background:${p.foreground};width:70%"></i><i style="background:${p.color4 || p.foreground};width:45%"></i><div class="dots">${[1, 2, 3, 4, 5, 6].map(n => `<i style="background:${p["color" + n]}"></i>`).join("")}</div>`;
+      if (!p) { el.classList.add("none"); el.innerHTML = code ? `<span>${el.dataset.pv === "auto" ? "↺" : "Aa"}</span>` : ""; return; }
+      if (code) {
+        const t = themePreviewHTML(p);
+        el.style.background = t.bg;
+        el.innerHTML = t.html;
+      } else {
+        el.style.background = p.background;
+        el.innerHTML = `<i style="background:${p.foreground};width:70%"></i><i style="background:${p.color4 || p.foreground};width:45%"></i><div class="dots">${[1, 2, 3, 4, 5, 6].map(n => `<i style="background:${p["color" + n]}"></i>`).join("")}</div>`;
+      }
     });
     term(m);
   });
@@ -274,10 +368,19 @@ function hydrateCustom(root, settings, onChange) {
     if (!spec) return;
     const value = val === null || val === spec.default ? null : val;
     onChange(spec, value);
-    // Atualiza só o necessário, sem redesenhar a página (mantém o scroll e o foco).
     term(spec.module);
   };
-  root.addEventListener("click", e => {
+  const saveKeymaps = box => {
+    const rows = $$(".km-row", box).map(r => {
+      const g = k => r.querySelector(`[data-k="${k}"]`).value;
+      const o = { mode: g("mode"), lhs: g("lhs").trim(), rhs: g("rhs") };
+      if (g("desc").trim()) o.desc = g("desc").trim();
+      return o;
+    }).filter(k => k.lhs && k.rhs);
+    $(".km-empty", box).hidden = $$(".km-row", box).length > 0;
+    set(box.dataset.km, JSON.stringify(rows));
+  };
+  listen("click", e => {
     const b = e.target.closest("[data-set]");
     if (b) {
       b.parentElement.querySelectorAll("[data-set]").forEach(x => x.classList.toggle("on", x === b));
@@ -287,14 +390,55 @@ function hydrateCustom(root, settings, onChange) {
     const r = e.target.closest("[data-reset]");
     if (r) { set(r.dataset.reset, null); rerenderCustom(root, settings, onChange); return; }
     const j = e.target.closest("[data-jump]");
-    if (j) { $(`#cz-${j.dataset.jump}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); $$("[data-jump]", root).forEach(x => x.classList.toggle("on", x === j)); }
+    if (j) { $(`#cz-${j.dataset.jump}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); $$("[data-jump]", root).forEach(x => x.classList.toggle("on", x === j)); return; }
+    const add = e.target.closest("[data-km-add]");
+    if (add) {
+      const box = add.closest(".km");
+      $(".km-rows", box).insertAdjacentHTML("beforeend", keymapRow({ mode: "n" }));
+      $(".km-empty", box).hidden = true;
+      $(".km-rows .km-row:last-child [data-k=lhs]", box).focus();
+      return;
+    }
+    const del = e.target.closest("[data-km-del]");
+    if (del) { const box = del.closest(".km"); del.closest(".km-row").remove(); saveKeymaps(box); return; }
+    const lp = e.target.closest("[data-lines-preset]");
+    if (lp) {
+      const ta = root.querySelector(`[data-lines="${lp.dataset.linesPreset}"]`);
+      const add = TMUX_PRESETS[Number(lp.dataset.i)][1];
+      ta.value = (ta.value.trim() ? ta.value.replace(/\s*$/, "\n") : "") + add + "\n";
+      set(lp.dataset.linesPreset, ta.value);
+    }
   });
-  $$("[data-num]", root).forEach(inp => {
-    const out = inp.nextElementSibling;
-    inp.addEventListener("input", () => { out.textContent = inp.value + inp.dataset.unit; set(inp.dataset.num, inp.value); });
+  listen("change", e => {
+    const t = e.target;
+    if (t.matches("[data-km-preset]")) {
+      if (t.value === "") return;
+      const box = t.closest(".km");
+      $(".km-rows", box).insertAdjacentHTML("beforeend", keymapRow(KEYMAP_PRESETS[Number(t.value)][1]));
+      t.value = "";
+      saveKeymaps(box);
+      return;
+    }
+    if (t.closest(".km-row")) { saveKeymaps(t.closest(".km")); return; }
+    if (t.matches("[data-select]")) set(t.dataset.select, t.value);
+    if (t.matches("[data-bool]")) set(t.dataset.bool, String(t.checked));
+    if (t.matches("[data-text]")) set(t.dataset.text, t.value);
+    if (t.matches("[data-lines]")) set(t.dataset.lines, t.value);
+    if (t.matches("[data-colortext]")) {
+      const v = t.value.trim().toLowerCase();
+      if (/^#[0-9a-f]{6}$/.test(v)) { t.previousElementSibling.value = v; set(t.dataset.colortext, v); }
+      else toast("Cor inválida: use #rrggbb", "err");
+    }
   });
-  $$("[data-bool]", root).forEach(inp => inp.addEventListener("change", () => set(inp.dataset.bool, String(inp.checked))));
-  $$("[data-text]", root).forEach(inp => inp.addEventListener("change", () => set(inp.dataset.text, inp.value)));
+  listen("input", e => {
+    const t = e.target;
+    if (t.matches("[data-num]")) { t.nextElementSibling.textContent = t.value + t.dataset.unit; set(t.dataset.num, t.value); }
+    if (t.matches("[data-color]")) { t.nextElementSibling.value = t.value; set(t.dataset.color, t.value); }
+    if (t.matches("[data-filter-grid]")) {
+      const q = t.value.trim().toLowerCase();
+      $$(`[data-pal="${t.dataset.filterGrid}"] .th-card`, root).forEach(c => { c.hidden = q && !c.dataset.name.includes(q); });
+    }
+  });
   catalog().forEach(m => term(m.id));
 }
 function rerenderCustom(root, settings, onChange) {
@@ -325,8 +469,10 @@ function liveChange(spec, value) {
     APPLY[spec.module] = setTimeout(() => runSync(spec.module, { quiet: true }), 700);
   }, 150);
 }
+const CUSTOM_ORDER = ["kitty", "tmux", "nvim", "vim", "shell"];
 function viewCustom() {
-  const mods = catalog().filter(m => m.supported && m.options.length);
+  const rank = id => { const i = CUSTOM_ORDER.indexOf(id); return i < 0 ? 99 : i; };
+  const mods = catalog().filter(m => m.supported && m.options.length).sort((a, b) => rank(a.id) - rank(b.id));
   return `<div class="hx-wrap one"><div class="hx-main">
     <section class="hx-hero sm"><div class="hx-logo">${applogo()}</div><div class="hx-hmain"><h2>Personalizar</h2><p class="mut">Mude e veja na hora. Cada mudança é gravada no settings.toml e aplicada só naquele módulo.</p>
     <div class="hx-cta"><label class="sw"><input type="checkbox" id="live" ${UI.live ? "checked" : ""}><i></i></label><span>Aplicar ao vivo</span></div></div></section>
@@ -801,7 +947,7 @@ const MOCK = {
       m("starship", "starship", "Prompt rápido e configurável"),
       m("tmux", "tmux", "Multiplexador de terminal (prefixo Ctrl+A)"),
       m("vim", "Vim", "Vim com tema, plugins (airline, nerdtree, coc...) e wrapper", ["icaro-themes", "font-jetbrains-mono"]),
-    ];
+    ].map(x => (window.MOCK_EXTRA && window.MOCK_EXTRA.catalog[x.id]) || x);
   },
   report: null,
   async call(cmd, a) {
@@ -819,7 +965,8 @@ const MOCK = {
           modules: cat.map(m => ({ id: m.id, description: m.description, enabled: s.modules.includes(m.id), installed: this.report && s.modules.includes(m.id) ? ({ kitty: "0.39.1", tmux: "3.5a", nvim: "0.11.2" }[m.id] || "configs") : null, pin: s.pins[m.id] || null, supported: true })),
         };
       }
-      case "previews": return Object.fromEntries(Object.entries(this.pal).map(([k, [bg, fg, c]]) => [k, Object.assign({ background: bg, foreground: fg }, ...c.map((x, i) => ({ ["color" + i]: x })))]));
+      case "previews": if (window.MOCK_EXTRA && window.MOCK_EXTRA.previews[a.module + "." + a.key]) return window.MOCK_EXTRA.previews[a.module + "." + a.key];
+        return Object.fromEntries(Object.entries(this.pal).map(([k, [bg, fg, c]]) => [k, Object.assign({ background: bg, foreground: fg }, ...c.map((x, i) => ({ ["color" + i]: x })))]));
       case "toggle_module": { const on = !s.modules.includes(a.id); s.modules = on ? [...s.modules, a.id] : s.modules.filter(m => m !== a.id); return on; }
       case "save_settings": this.settings = a.settings; this.first = false; return null;
       case "set_option": { s.options[a.module] = s.options[a.module] || {}; if (a.value === null) delete s.options[a.module][a.key]; else s.options[a.module][a.key] = a.value; return null; }

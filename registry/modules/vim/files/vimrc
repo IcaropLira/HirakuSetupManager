@@ -40,6 +40,14 @@ if filereadable(expand('~/.vim/config/local.vim'))
     source ~/.vim/config/local.vim
 endif
 let g:icaro_use_nerd_font = get(g:, 'icaro_use_nerd_font', 0)
+
+" Opções do Hiraku Setup Manager (~/.vim/hiraku.json): tecla líder, ícones e
+" plugins são decididos aqui, antes de qualquer atalho ou packadd.
+source ~/.vim/config/hiraku.vim
+call HirakuLeader()
+if HirakuHas('nerd_font')
+    let g:icaro_use_nerd_font = g:hiraku.nerd_font ? 1 : 0
+endif
 " Powerline pode ser usado independentemente dos ícones da Nerd Font.
 " O padrão é 1 para manter winbar/statusline com os separadores reais.
 let g:icaro_powerline = get(g:, 'icaro_powerline', 1)
@@ -213,11 +221,18 @@ set splitright
 " instalado, o packadd falha silenciosamente e o resto funciona.
 " ------------------------------------------------------------
 silent! packadd! icaro-theme
-silent! packadd! vim-airline
-silent! packadd! vim-airline-themes
-silent! packadd! vim-fugitive
-silent! packadd! nerdtree
-silent! packadd! nerdtree-git-plugin
+" Os que você desligou no app (Vim → Plugins) não carregam.
+if HirakuPlugin('airline')
+    silent! packadd! vim-airline
+    silent! packadd! vim-airline-themes
+endif
+if HirakuPlugin('fugitive')
+    silent! packadd! vim-fugitive
+endif
+if HirakuPlugin('nerdtree')
+    silent! packadd! nerdtree
+    silent! packadd! nerdtree-git-plugin
+endif
 
 " vim-devicons (ícones por tipo de arquivo) só é carregado se você
 " confirmou ter uma Nerd Font instalada (pergunta feita pelo
@@ -244,7 +259,9 @@ if get(g:, 'icaro_powerline', 1)
     let g:airline_right_alt_sep = ''
 endif
 
-silent! packadd! coc.nvim
+if HirakuPlugin('coc')
+    silent! packadd! coc.nvim
+endif
 
 " A limpeza/restauração do terminal é feita pelo wrapper instalado em
 " ~/.local/bin/vim depois que o processo do Vim realmente termina.
@@ -267,3 +284,8 @@ source ~/.vim/config/python.vim
 source ~/.vim/config/cheatsheet.vim
 source ~/.vim/config/functionkeys.vim
 source ~/.vim/config/keymaps.vim
+
+" Por cima de tudo acima: o que foi escolhido no Hiraku Setup Manager (e a
+" reaplicação automática quando o app grava o hiraku.json).
+call HirakuApplyAll()
+call HirakuSetup()

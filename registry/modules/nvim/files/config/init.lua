@@ -6,6 +6,8 @@
 -- ============================================================
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
+-- Tecla líder escolhida no Hiraku Setup Manager (hiraku.json), se houver.
+pcall(function() require("icaro.hiraku").leader() end)
 
 -- Abertura rápida: cache em disco dos módulos Lua compilados (Neovim 0.9+).
 if vim.loader and vim.loader.enable then vim.loader.enable() end

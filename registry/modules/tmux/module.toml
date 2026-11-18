@@ -43,3 +43,166 @@ bump = { github = "tmux/tmux-builds" }
 [[config]]
 src = "files/tmux.conf"
 dest = { unix = "~/.tmux.conf" }
+template = true
+
+# Recarrega o tmux aberto quando o tmux.conf muda (opções trocadas no app).
+[[hook]]
+name = "reload-config"
+script = "hooks/reload-config.sh"
+needs = ["tmux"]
+optional = true
+
+# ---------------------------------------------------------------- opções
+# Entram no tmux.conf (template). O hook reload-config recarrega o tmux aberto.
+
+[options.prefix]
+type = "choice"
+values = ["C-a", "C-b", "C-Space", "C-s", "M-a"]
+default = "C-a"
+label = "Prefixo"
+section = "Geral"
+description = "A tecla que vem antes dos atalhos do tmux."
+[options.prefix.labels]
+"C-a" = "Ctrl+A"
+"C-b" = "Ctrl+B (padrão)"
+"C-Space" = "Ctrl+Espaço"
+"C-s" = "Ctrl+S"
+"M-a" = "Alt+A"
+
+[options.mouse]
+type = "bool"
+default = true
+label = "Mouse"
+section = "Geral"
+description = "Clicar em painéis e janelas, rolar e redimensionar com o mouse."
+
+[options.clipboard]
+type = "bool"
+default = true
+label = "Copiar para a área de transferência do sistema"
+section = "Geral"
+description = "O que você copia no modo cópia (v, y) vai para o Ctrl+V do sistema (OSC 52; o kitty suporta)."
+
+[options.mode_keys]
+type = "choice"
+values = ["vi", "emacs"]
+default = "vi"
+label = "Teclas do modo cópia"
+section = "Geral"
+[options.mode_keys.labels]
+vi = "Estilo Vim (hjkl, v, y)"
+emacs = "Estilo Emacs"
+
+[options.base_index]
+type = "choice"
+values = ["1", "0"]
+default = "1"
+label = "Numeração das janelas começa em"
+section = "Geral"
+
+[options.history_limit]
+type = "number"
+min = 1000
+max = 200000
+default = 50000
+label = "Linhas de histórico por painel"
+section = "Geral"
+
+[options.escape_time]
+type = "number"
+min = 0
+max = 1000
+default = 100
+label = "Espera do Esc (ms)"
+section = "Geral"
+description = "Valores baixos deixam o Esc do Vim mais rápido dentro do tmux."
+
+[options.status]
+type = "bool"
+default = true
+label = "Barra de status"
+section = "Aparência"
+description = "Ctrl+Espaço mostra/esconde na hora."
+
+[options.status_position]
+type = "choice"
+values = ["bottom", "top"]
+default = "bottom"
+label = "Posição da barra"
+section = "Aparência"
+[options.status_position.labels]
+bottom = "Embaixo"
+top = "Em cima"
+
+[options.title]
+type = "string"
+default = "TMUX ÍCARO LIRA"
+label = "Texto da barra"
+section = "Aparência"
+description = "Aparece à esquerda, no destaque."
+
+[options.clock]
+type = "choice"
+values = ["%H:%M:%S", "%H:%M", ""]
+default = "%H:%M:%S"
+label = "Relógio"
+section = "Aparência"
+[options.clock.labels]
+"%H:%M:%S" = "Com segundos"
+"%H:%M" = "Sem segundos"
+"" = "Sem relógio"
+
+[options.accent]
+type = "color"
+default = "#00ffff"
+label = "Cor de destaque"
+section = "Aparência"
+description = "Janela atual, título, bordas do painel ativo."
+
+[options.status_bg]
+type = "color"
+default = "#262626"
+label = "Fundo da barra"
+section = "Aparência"
+
+[options.status_fg]
+type = "color"
+default = "#bcbcbc"
+label = "Texto da barra"
+section = "Aparência"
+
+[options.border]
+type = "color"
+default = "#444444"
+label = "Borda dos painéis"
+section = "Aparência"
+
+[options.pane_border_status]
+type = "choice"
+values = ["top", "bottom", "off"]
+default = "top"
+label = "Título nos painéis"
+section = "Aparência"
+[options.pane_border_status.labels]
+top = "Em cima"
+bottom = "Embaixo"
+off = "Sem título"
+
+[options.split_h]
+type = "string"
+default = "|"
+label = "Dividir lado a lado (prefixo + tecla)"
+section = "Atalhos"
+
+[options.split_v]
+type = "string"
+default = "-"
+label = "Dividir em cima/embaixo (prefixo + tecla)"
+section = "Atalhos"
+
+[options.binds]
+type = "lines"
+default = ""
+label = "Atalhos extras"
+section = "Atalhos"
+description = "Comandos do tmux, um por linha. Ex.: bind -n M-z resize-pane -Z  ·  unbind q"
