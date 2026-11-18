@@ -15,7 +15,8 @@ sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
 dest = "~/.local/share/hiraku/node"
 strip_components = 1
 bins = [{ src = "bin/node", link = "~/.local/bin/node" }, { src = "bin/npm", link = "~/.local/bin/npm" }, { src = "bin/npx", link = "~/.local/bin/npx" }]
-bump = { index_url = "https://nodejs.org/dist/latest-lts/", index_prefix = "node-v", index_suffix = "-linux-x64.tar.xz" }
+# Linha LTS fixada (24 = Krypton): o bump acompanha 24.x; trocar de major é decisão manual.
+bump = { index_url = "https://nodejs.org/dist/latest-v24.x/", index_prefix = "node-v", index_suffix = "-linux-x64.tar.xz" }
 
 [[install]]
 when = { os = "linux", arch = "aarch64" }
@@ -26,7 +27,7 @@ sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
 dest = "~/.local/share/hiraku/node"
 strip_components = 1
 bins = [{ src = "bin/node", link = "~/.local/bin/node" }, { src = "bin/npm", link = "~/.local/bin/npm" }, { src = "bin/npx", link = "~/.local/bin/npx" }]
-bump = { index_url = "https://nodejs.org/dist/latest-lts/", index_prefix = "node-v", index_suffix = "-linux-arm64.tar.xz" }
+bump = { index_url = "https://nodejs.org/dist/latest-v24.x/", index_prefix = "node-v", index_suffix = "-linux-arm64.tar.xz" }
 
 [[install]]
 when = { os = "macos" }

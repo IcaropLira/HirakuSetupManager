@@ -646,11 +646,11 @@ url = "https://nodejs.org/dist/v{version}/node-v{version}-linux-x64.tar.xz"
 sha256 = "SHA"
 dest = "~/.local/node"
 strip_components = 1
-bump = { index_url = "https://nodejs.org/dist/latest-lts/", index_prefix = "node-v", index_suffix = "-linux-x64.tar.xz" }
+bump = { index_url = "https://nodejs.org/dist/latest-v24.x/", index_prefix = "node-v", index_suffix = "-linux-x64.tar.xz" }
 "#
         .replace("SHA", &"c".repeat(64));
         let mut fake = Fake::default();
-        fake.versions.insert("https://nodejs.org/dist/latest-lts/".to_string(), "22.11.0".to_string());
+        fake.versions.insert("https://nodejs.org/dist/latest-v24.x/".to_string(), "22.11.0".to_string());
         let (text, changes) = bump_manifest_text("node", &src, &fake).unwrap();
         assert!(text.contains("version = \"22.11.0\""));
         assert_eq!(changes[0].to, "22.11.0");
