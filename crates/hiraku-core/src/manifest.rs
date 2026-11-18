@@ -123,7 +123,7 @@ pub struct BumpSource {
     pub github: Option<String>,
     /// Prefixo removido da tag para formar a versão (padrão `v`; use `""` se não houver).
     pub tag_prefix: Option<String>,
-    /// Página de índice (ex.: nodejs.org/dist/latest-lts/); a versão é o texto entre
+    /// Página de índice (ex.: nodejs.org/dist/latest-v24.x/); a versão é o texto entre
     /// `index_prefix` e `index_suffix`.
     pub index_url: Option<String>,
     pub index_prefix: Option<String>,

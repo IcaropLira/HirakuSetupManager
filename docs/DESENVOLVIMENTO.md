@@ -142,7 +142,7 @@ sha256 = "..."
 dest = "~/.local/share/hiraku/node"
 strip_components = 1              # tira a pasta versionada de nível único
 bins = [{ src = "bin/node", link = "~/.local/bin/node" }]
-bump = { index_url = "https://nodejs.org/dist/latest-lts/", index_prefix = "node-v", index_suffix = "-linux-x64.tar.xz" }
+bump = { index_url = "https://nodejs.org/dist/latest-v24.x/", index_prefix = "node-v", index_suffix = "-linux-x64.tar.xz" }
 ```
 
 ## Configs: modos, opções e hooks

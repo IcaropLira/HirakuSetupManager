@@ -31,8 +31,8 @@ jobs:
             args: --bundles msi,nsis
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - uses: dtolnay/rust-toolchain@stable
@@ -54,8 +54,9 @@ jobs:
           conf.version = version;
           fs.writeFileSync(confPath, JSON.stringify(conf, null, 2) + '\n');
           const cargo = fs.readFileSync('Cargo.toml', 'utf8');
-          const updated = cargo.replace(/(\[workspace\.package\][\s\S]*?\nversion\s*=\s*)"[^"]+"/, `$1"${version}"`);
-          if (updated === cargo) throw new Error('não achei a versão do workspace no Cargo.toml');
+          const re = /(\[workspace\.package\][\s\S]*?\nversion\s*=\s*)"[^"]+"/;
+          if (!re.test(cargo)) throw new Error('não achei a versão do workspace no Cargo.toml');
+          const updated = cargo.replace(re, `$1"${version}"`);
           fs.writeFileSync('Cargo.toml', updated);
           NODE
       - name: Install Linux dependencies
@@ -66,6 +67,21 @@ jobs:
             libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev
       - name: Tests
         run: cargo test --workspace --exclude hiraku-gui
+      # Sem a chave do atualizador, gera os instaladores mesmo assim (sem latest.json):
+      # os apps instalados só se atualizam sozinhos a partir da primeira release assinada.
+      - name: Updater signing
+        id: sign
+        shell: bash
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"; echo "extra=" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::secret TAURI_SIGNING_PRIVATE_KEY ausente (rode scripts/setup-signing.sh): release sem atualização automática do app"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "extra=--config crates/hiraku-gui/tauri.nosign.json" >> "$GITHUB_OUTPUT"
+          fi
       - run: npm install
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -82,5 +98,5 @@ jobs:
             - Windows: `.msi` ou `-setup.exe`
           releaseDraft: false
           prerelease: false
-          uploadUpdaterJson: true
-          args: ${{ matrix.args }}
+          uploadUpdaterJson: ${{ steps.sign.outputs.enabled == 'true' }}
+          args: ${{ matrix.args }} ${{ steps.sign.outputs.extra }}
