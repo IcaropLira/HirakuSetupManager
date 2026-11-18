@@ -18,6 +18,15 @@ Baixe o instalador do seu sistema na [última release](https://github.com/Icarop
 | macOS | `.dmg` |
 | Windows | `.msi` ou `-setup.exe` |
 
+### Fedora pelo dnf
+
+```sh
+sudo curl -fsSL -o /etc/yum.repos.d/hiraku.repo https://icaroplira.github.io/HirakuSetupManager/rpm/hiraku.repo
+sudo dnf install hiraku-setup-manager
+```
+
+Depois, `sudo dnf upgrade` traz as versões novas junto com o resto do sistema.
+
 Na primeira vez o app abre um assistente: se você tem sudo, qual editor, o que instalar,
 paleta/transparência do terminal e se quer atualização automática. Nada é gravado até o
 último passo.
@@ -54,6 +63,7 @@ registry.yml (toda segunda)                      sync agendado (systemd/launchd/
 
 tag v* → release.yml                             app aberto
   instaladores + latest.json assinado      ───►    tauri-plugin-updater baixa e instala
+  dnf.yml: .rpm assinado no GitHub Pages   ───►    sudo dnf upgrade
 ```
 
 ## Desenvolvimento
