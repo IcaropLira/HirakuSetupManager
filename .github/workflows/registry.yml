@@ -84,7 +84,12 @@ jobs:
             echo "::warning::secret MINISIGN_SECRET_KEY ausente: rode scripts/setup-signing.sh. Versões commitadas, nada publicado."
             exit 0
           fi
-          sudo apt-get install -y minisign
+          # O Ubuntu 22.04 não tem minisign no apt: binário oficial, com checksum conferido.
+          curl -fsSL -o "$RUNNER_TEMP/minisign.tgz" https://github.com/jedisct1/minisign/releases/download/0.12/minisign-0.12-linux.tar.gz
+          echo "9a599b48ba6eb7b1e80f12f36b94ceca7c00b7a5173c95c3efc88d9822957e73  $RUNNER_TEMP/minisign.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/minisign.tgz" -C "$RUNNER_TEMP" minisign-linux/x86_64/minisign
+          sudo install -m 0755 "$RUNNER_TEMP/minisign-linux/x86_64/minisign" /usr/local/bin/minisign
+          minisign -v
           umask 077
           printf '%s\n' "$MINISIGN_SECRET_KEY" > "$RUNNER_TEMP/registry.key"
           MINISIGN_KEY_FILE="$RUNNER_TEMP/registry.key" scripts/publish-registry.sh
