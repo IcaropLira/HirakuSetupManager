@@ -17,22 +17,7 @@ let g:icaro_cheatsheet_id = -1
 let s:CHEATSHEET_LINES = [
       \ ' ATALHOS DESTA CONFIGURACAO ',
       \ '',
-      \ ' F1   próximo tema',
-      \ ' S-F1 tema anterior',
-      \ ' F2   abrir/fechar o explorer (NERDTree)',
-      \ ' F3   liga/desliga dicas de parametro inline',
-      \ ' F4   liga/desliga o autocomplete',
-      \ ' F5   compilar',
-      \ ' F6   executar',
-      \ ' F7   compilar + executar (Python: salvar + executar)',
-      \ ' F8   compilar + executar com input.txt',
-      \ ' F9   abrir terminal',
-      \ ' F10  liga/desliga fecha-parenteses/aspas e popup de assinatura',
-      \ ' S-F10 liga/desliga highlight do par de parenteses/colchetes',
-      \ ' S-F11 modo silencioso: fecha popups e desliga marcacoes do autocomplete',
-      \ ' S-F12 mostra/esconde o header no topo',
-      \ ' F24  mesmo atalho que Shift+F12 em terminais que o enviam como F24',
-      \ ' F12  esta folha de atalhos',
+      \ '@FKEYS@',
       \ ' COMANDOS RAPIDOS (equivalentes aos F-keys) ',
       \ ' :Th :Pv :Nt :Ih :Ac :Cp :Rn :Br :Ti :Te',
       \ ' :Pa :Mh :Of :Hd :Cs',
@@ -92,6 +77,38 @@ let s:CHEATSHEET_LINES = [
       \ ' (aperte qualquer tecla para fechar) ',
       \ ]
 
+" As teclas de função vêm do que está configurado agora (app → Teclas de função).
+function! s:Lines() abort
+    let l:out = []
+    for l:l in s:CHEATSHEET_LINES
+        if l:l ==# '@FKEYS@'
+            let l:w = max(map(copy(get(g:, 'icaro_fkeys', [])), {_, k -> strdisplaywidth(s:Pretty(k[0]))}) + [4])
+            for [l:k, l:d] in get(g:, 'icaro_fkeys', [])
+                let l:p = s:Pretty(l:k)
+                call add(l:out, ' ' . l:p . repeat(' ', l:w - strdisplaywidth(l:p)) . '  ' . l:d)
+            endfor
+        else
+            call add(l:out, l:l)
+        endif
+    endfor
+    return l:out
+endfunction
+
+" <S-F10> -> S-F10, <F5> -> F5 (como no resto da folha)
+function! s:Pretty(key) abort
+    return substitute(a:key, '^<\(.*\)>$', '\1', '')
+endfunction
+
+" A tecla da folha de atalhos também fecha a folha.
+function! s:IsCheatKey(key) abort
+    for [l:k, l:d] in get(g:, 'icaro_fkeys', [])
+        if l:d =~# ':Cs)' && l:k =~# '^<.*>$'
+            return a:key ==# eval('"\' . l:k . '"')
+        endif
+    endfor
+    return a:key ==# "\<F12>"
+endfunction
+
 function! s:CloseCheatsheet() abort
     if g:icaro_cheatsheet_id != -1
         call popup_close(g:icaro_cheatsheet_id)
@@ -107,7 +124,7 @@ function! ToggleCheatsheet() abort
         return
     endif
 
-    let g:icaro_cheatsheet_id = popup_create(s:CHEATSHEET_LINES, {
+    let g:icaro_cheatsheet_id = popup_create(s:Lines(), {
           \ 'pos': 'center',
           \ 'border': [1, 1, 1, 1],
           \ 'padding': [0, 2, 0, 2],
@@ -125,7 +142,7 @@ endfunction
 function! s:CheatsheetFilter(id, key) abort
     " O F12 precisa funcionar como toggle mesmo com o popup focado.
     " Qualquer outra tecla passa normalmente para o Vim.
-    if a:key ==# "\<F12>"
+    if s:IsCheatKey(a:key)
         call s:CloseCheatsheet()
         return 1
     endif
@@ -148,7 +165,7 @@ function! ShowCheatsheetWhileHeld() abort
         return
     endif
 
-    let g:icaro_cheatsheet_id = popup_create(s:CHEATSHEET_LINES, {
+    let g:icaro_cheatsheet_id = popup_create(s:Lines(), {
           \ 'pos': 'center',
           \ 'border': [1, 1, 1, 1],
           \ 'padding': [0, 2, 0, 2],

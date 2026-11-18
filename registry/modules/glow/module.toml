@@ -1,0 +1,42 @@
+schema = 1
+id = "glow"
+name = "glow"
+description = "Lê arquivos Markdown formatados no terminal (glow README.md)"
+platforms = ["linux", "macos", "windows"]
+homepage = "https://github.com/charmbracelet/glow"
+discover = ["shell", "kitty"]
+
+[[install]]
+when = { os = "linux", arch = "x86_64" }
+provides = ["glow"]
+method = "release"
+version = "3.0.0"
+url = "https://github.com/charmbracelet/glow/releases/download/v{version}/glow_{version}_Linux_x86_64.tar.gz"
+sha256 = "13e05e4b2acc18d2aee44291aefe6325b077ec321b631a0cfa780e8e3bc33f78"
+dest = "~/.local/share/hiraku/glow"
+strip_components = 1
+bins = [{ src = "glow", link = "~/.local/bin/glow" }]
+bump = { github = "charmbracelet/glow" }
+
+[[install]]
+when = { os = "linux", arch = "aarch64" }
+provides = ["glow"]
+method = "release"
+version = "3.0.0"
+url = "https://github.com/charmbracelet/glow/releases/download/v{version}/glow_{version}_Linux_arm64.tar.gz"
+sha256 = "810c39f4691feb75e675a5f5f54b9fa091354e7599d9cf9c9fc9b97e47a99759"
+dest = "~/.local/share/hiraku/glow"
+strip_components = 1
+bins = [{ src = "glow", link = "~/.local/bin/glow" }]
+bump = { github = "charmbracelet/glow" }
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "glow" }
+provides = ["glow"]
+
+[[install]]
+when = { os = "windows" }
+method = "pkg"
+names = { scoop = "glow" }

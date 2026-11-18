@@ -3,6 +3,8 @@ id = "starship"
 name = "starship"
 description = "Prompt rápido e configurável"
 platforms = ["linux", "macos", "windows"]
+homepage = "https://starship.rs"
+discover = ["shell", "kitty"]
 
 [[install]]
 when = { os = "linux", arch = "x86_64" }

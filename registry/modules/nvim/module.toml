@@ -78,10 +78,10 @@ optional = true
 [options.colorscheme]
 type = "choice"
 default = "auto"
-values = ["auto", "maria_isabel", "jales", "camelo", "sassa", "malvadao", "mateus_sao_paulino", "pedro_de", "belchior", "lucas_ribeiro", "alan_turing", "alan_turing_antiresenha", "henrique", "off_light", "geraldo", "cabeludo", "cookie", "ruiva", "baiana", "do_mal", "sofia", "guerra", "soares", "biscoitinho", "gvsl", "jf", "toyman", "massoni", "dijkstra", "ever_dream_this_man", "raul", "acesso_negado", "espresso", "plum", "flatui", "neocybervim", "sunbather", "tatami", "lucid", "lucario", "roti", "hotdog", "macvim_light", "farout", "burgundy", "petra", "tokyonight-night", "c", "kanagawa", "rose-pine", "nightfox", "carbonfox"]
+values = ["auto", "maria_isabel", "jales", "camelo", "sassa", "malvadao", "mateus_sao_paulino", "pedro_de", "belchior", "lucas_ribeiro", "alan_turing", "alan_turing_antiresenha", "henrique", "off_light", "geraldo", "cabeludo", "cookie", "ruiva", "baiana", "do_mal", "sofia", "guerra", "soares", "biscoitinho", "gvsl", "jf", "toyman", "massoni", "dijkstra", "ever_dream_this_man", "raul", "acesso_negado", "espresso", "plum", "flatui", "neocybervim", "sunbather", "tatami", "lucid", "lucario", "roti", "hotdog", "macvim_light", "farout", "burgundy", "o_do_lol", "petra", "tokyonight-night", "c", "kanagawa", "nightfox", "carbonfox"]
 label = "Tema"
 section = "Aparência"
-description = "Colorscheme do editor. \"O último escolhido no editor\" deixa a troca com F3/:Th."
+description = "Colorscheme do editor. \"O último escolhido no editor\" deixa a troca com F1/:Th."
 preview = "../icaro-themes/files/icaro-theme/colors/{value}.vim"
 [options.colorscheme.labels]
 "auto" = "O último escolhido no editor"
@@ -129,11 +129,11 @@ preview = "../icaro-themes/files/icaro-theme/colors/{value}.vim"
 "macvim_light" = "JA"
 "farout" = "Holanda"
 "burgundy" = "Ela também é maligna..."
+"o_do_lol" = "o do LOL"
 "petra" = "Sonhei com você essa noite"
 "tokyonight-night" = "EULLER D. NOBREGA"
 "c" = "PKJ Master"
 "kanagawa" = "Trompete"
-"rose-pine" = "o do LOL"
 "nightfox" = "Protegido"
 "carbonfox" = "POR MIM"
 
@@ -382,6 +382,269 @@ label = "Meus atalhos"
 section = "Atalhos"
 description = "Valem por cima dos atalhos do Ícaro. Para desativar um atalho existente, use <Nop> como ação."
 
+[options.key_theme_next]
+type = "string"
+default = "<F1>"
+label = "Próximo tema (:Th)"
+section = "Teclas de função"
+description = "Padrão: <F1>. Vale qualquer tecla do Vim: <F5>, <S-F5> (Shift+F5), <C-t>, <leader>t. Vazio = sem tecla. A folha de atalhos mostra as teclas atuais."
+
+[options.key_theme_prev]
+type = "string"
+default = "<S-F1>"
+label = "Tema anterior (:Pv)"
+section = "Teclas de função"
+description = "Padrão: <S-F1>."
+
+[options.key_explorer]
+type = "string"
+default = "<F2>"
+label = "Árvore de arquivos (:Nt)"
+section = "Teclas de função"
+description = "Padrão: <F2>."
+
+[options.key_inlay]
+type = "string"
+default = "<F3>"
+label = "Dicas de parâmetro no código (:Ih)"
+section = "Teclas de função"
+description = "Padrão: <F3>."
+
+[options.key_hints]
+type = "string"
+default = "<S-F3>"
+label = "Dicas de método (:Dc)"
+section = "Teclas de função"
+description = "Padrão: <S-F3>."
+
+[options.key_autocomplete]
+type = "string"
+default = "<F4>"
+label = "Autocomplete da linguagem (:Ac)"
+section = "Teclas de função"
+description = "Padrão: <F4>."
+
+[options.key_diagnostics]
+type = "string"
+default = "<S-F4>"
+label = "Avisos e erros (:Dg)"
+section = "Teclas de função"
+description = "Padrão: <S-F4>."
+
+[options.key_compile]
+type = "string"
+default = "<F5>"
+label = "Compilar (:Cp)"
+section = "Teclas de função"
+description = "Padrão: <F5>."
+
+[options.key_run]
+type = "string"
+default = "<F6>"
+label = "Executar (:Rn)"
+section = "Teclas de função"
+description = "Padrão: <F6>."
+
+[options.key_build_run]
+type = "string"
+default = "<F7>"
+label = "Compilar e executar (:Br)"
+section = "Teclas de função"
+description = "Padrão: <F7>."
+
+[options.key_test]
+type = "string"
+default = "<F8>"
+label = "Testar com input.txt (:Ti)"
+section = "Teclas de função"
+description = "Padrão: <F8>."
+
+[options.key_terminal]
+type = "string"
+default = "<F9>"
+label = "Terminal (:Te)"
+section = "Teclas de função"
+description = "Padrão: <F9>."
+
+[options.key_autopairs]
+type = "string"
+default = "<F10>"
+label = "Fechar pares e aspas (:Pa)"
+section = "Teclas de função"
+description = "Padrão: <F10>."
+
+[options.key_matchparen]
+type = "string"
+default = "<S-F10>"
+label = "Destaque do par de parênteses (:Mh)"
+section = "Teclas de função"
+description = "Padrão: <S-F10>."
+
+[options.key_quiet]
+type = "string"
+default = "<S-F11>"
+label = "Modo silencioso (:Of)"
+section = "Teclas de função"
+description = "Padrão: <S-F11>."
+
+[options.key_cheatsheet]
+type = "string"
+default = "<F12>"
+label = "Folha de atalhos (:Cs)"
+section = "Teclas de função"
+description = "Padrão: <F12>."
+
+[options.key_header]
+type = "string"
+default = ""
+label = "Mostrar/esconder o header (:Hd)"
+section = "Teclas de função"
+description = "Padrão: nenhuma."
+
+[options.key_central]
+type = "string"
+default = "<S-F12>"
+label = "Central de configurações (:RF)"
+section = "Teclas de função"
+description = "Padrão: <S-F12>."
+
+[options.autocomplete_cpp]
+type = "bool"
+default = true
+label = "Autocomplete em C++"
+section = "Central"
+description = "O mesmo que a tecla de autocomplete (F4) num arquivo C++."
+
+[options.autocomplete_java]
+type = "bool"
+default = true
+label = "Autocomplete em Java"
+section = "Central"
+
+[options.autocomplete_python]
+type = "bool"
+default = true
+label = "Autocomplete em Python"
+section = "Central"
+
+[options.autocomplete_outros]
+type = "bool"
+default = true
+label = "Autocomplete nas outras linguagens"
+section = "Central"
+
+[options.inlay]
+type = "bool"
+default = true
+label = "Dicas de parâmetro no código (inlay hints)"
+section = "Central"
+description = "Texto fantasma tipo nome: valor ao chamar funções."
+
+[options.matchparen]
+type = "bool"
+default = true
+label = "Destacar o par de parênteses"
+section = "Central"
+
+[options.header]
+type = "bool"
+default = true
+label = "Header no topo da janela"
+section = "Central"
+
+[options.hints]
+type = "bool"
+default = false
+label = "Dicas de método (assinatura e documentação)"
+section = "Central"
+description = "Popups com a assinatura do método e a documentação ao lado das sugestões."
+
+[options.diagnostics]
+type = "bool"
+default = true
+label = "Avisos e erros no código"
+section = "Central"
+description = "Texto, sublinhado e sinais de erro/aviso do LSP."
+
+[options.lsp_progress]
+type = "bool"
+default = false
+label = "Mensagens de progresso do LSP"
+section = "Central"
+description = "Ex.: \"Validate documents jdtls\" no canto."
+
+[options.spell]
+type = "bool"
+default = false
+label = "Correção ortográfica"
+section = "Central"
+
+[options.showmode]
+type = "bool"
+default = false
+label = "Mostrar o modo na linha de comando"
+section = "Central"
+description = "A barra de status já mostra o modo."
+
+[options.smartindent]
+type = "bool"
+default = true
+label = "Indentação inteligente"
+section = "Central"
+
+[options.autoindent]
+type = "bool"
+default = true
+label = "Manter a indentação da linha anterior"
+section = "Central"
+
+[options.backup]
+type = "bool"
+default = false
+label = "Criar backups automáticos"
+section = "Central"
+
+[options.writebackup]
+type = "bool"
+default = true
+label = "Backup antes de sobrescrever"
+section = "Central"
+
+[options.template_cpp]
+type = "lines"
+default = "#include \"bits/stdc++.h\"\nusing namespace std;\n//#pragma once\n//#pragma GCC optimize(\"O3,unroll-loops\")\n//#pragma GCC target(\"avx2,bmi,bmi2,lzcnt,popcnt\")\n\n#define endl '\\n'\n#define rep(i, a, b) for (int i = a; i < (b); i++)\n#define all(x) (x).begin(), (x).end()\n#define sz(x) (int)(x).size()\n#define sq(x) (x)*(x)\ntemplate<class T, class U> inline void chmin(T& a, U b) { if (a > b) a = b; }\ntemplate<class T, class U> inline void chmax(T& a, U b) { if (a < b) a = b; }\nmt19937 rng((int) chrono::steady_clock::now().time_since_epoch().count());\ntypedef long long ll;\ntypedef long double ld;\ntypedef __int128 i128;\n\nvoid solve_tc() {\n}\n\nint main() {\n    cin.tie(0)->sync_with_stdio(0);\n    int tc = 1;\n    cin >> tc;\n    while (tc--) solve_tc();\n}\n\n"
+label = "C++"
+section = "Templates"
+description = "Texto de todo arquivo .cpp novo. __CURSOR__ marca onde o cursor começa. Vazio = arquivo em branco."
+
+[options.template_c]
+type = "lines"
+default = ""
+label = "C"
+section = "Templates"
+description = "Texto de todo arquivo .c novo. __CURSOR__ marca onde o cursor começa. Vazio = arquivo em branco."
+
+[options.template_python]
+type = "lines"
+default = ""
+label = "Python"
+section = "Templates"
+description = "Texto de todo arquivo .py novo. __CURSOR__ marca onde o cursor começa. Vazio = arquivo em branco."
+
+[options.template_java_cp]
+type = "lines"
+default = "import java.io.*;\nimport java.util.*;\n\nclass Main {\n\n    static BufferedReader br;\n    static StringTokenizer st;\n    static PrintWriter out;\n\n    public static void main(String[] args) throws IOException {\n        br = new BufferedReader(new InputStreamReader(System.in));\n        out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out)));\n\n        int t = 1;\n        t = nextInt();\n\n        while (t-- > 0) {\n            solve();\n        }\n\n        out.flush();\n    }\n\n    static void solve() throws IOException {\n\n    }\n\n    static String next() throws IOException {\n        while (st == null || !st.hasMoreTokens()) {\n            st = new StringTokenizer(br.readLine());\n        }\n        return st.nextToken();\n    }\n\n    static int nextInt() throws IOException {\n        return Integer.parseInt(next());\n    }\n\n    static long nextLong() throws IOException {\n        return Long.parseLong(next());\n    }\n\n    static double nextDouble() throws IOException {\n        return Double.parseDouble(next());\n    }\n}\n"
+label = "Java (programação competitiva)"
+section = "Templates"
+description = "Texto de todo arquivo .java terminado em _cp novo. __CURSOR__ marca onde o cursor começa; __CLASSNAME__ vira o nome do arquivo. Vazio = arquivo em branco."
+
+[options.template_java_main]
+type = "lines"
+default = "public class __CLASSNAME__ {\n\n    public static void main(String[] args) {\n\n    }\n}\n"
+label = "Java (classe comum)"
+section = "Templates"
+description = "Texto de todo arquivo .java novo. __CURSOR__ marca onde o cursor começa; __CLASSNAME__ vira o nome do arquivo. Vazio = arquivo em branco."
+
 [options.plugin_neo_tree]
 type = "bool"
 default = true
@@ -493,6 +756,86 @@ default = true
 label = "Barra de rolagem com marcas"
 section = "Plugins"
 description = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Neovim)."
+
+[options.plugin_flash]
+type = "bool"
+default = false
+label = "Pular para qualquer lugar (flash)"
+section = "Descobrir"
+description = "<leader>j + duas letras leva o cursor a qualquer ponto visível da tela. Baixa ao reabrir o Neovim."
+link = "https://github.com/folke/flash.nvim"
+
+[options.plugin_surround]
+type = "bool"
+default = false
+label = "Trocar o que está em volta (surround)"
+section = "Descobrir"
+description = "cs\"' troca aspas por apóstrofos, ds( tira parênteses, ysiw] cerca a palavra. Baixa ao reabrir o Neovim."
+link = "https://github.com/kylechui/nvim-surround"
+
+[options.plugin_oil]
+type = "bool"
+default = false
+label = "Editar pastas como texto (oil)"
+section = "Descobrir"
+description = "\"-\" abre a pasta do arquivo: renomeie, mova e apague editando as linhas e salve com :w. Baixa ao reabrir o Neovim."
+link = "https://github.com/stevearc/oil.nvim"
+
+[options.plugin_toggleterm]
+type = "bool"
+default = false
+label = "Terminal flutuante (toggleterm)"
+section = "Descobrir"
+description = "Ctrl+\\ abre e fecha um terminal por cima do código. Baixa ao reabrir o Neovim."
+link = "https://github.com/akinsho/toggleterm.nvim"
+
+[options.plugin_zen_mode]
+type = "bool"
+default = false
+label = "Modo foco (zen-mode)"
+section = "Descobrir"
+description = "<leader>z centraliza o texto e esconde números, barras e abas. Baixa ao reabrir o Neovim."
+link = "https://github.com/folke/zen-mode.nvim"
+
+[options.plugin_tmux_navigator]
+type = "bool"
+default = false
+label = "Navegar junto com o tmux"
+section = "Descobrir"
+description = "Ctrl+h/j/k/l anda entre janelas do Neovim e painéis do tmux. Ligue também no Descobrir do tmux. Baixa ao reabrir o Neovim."
+link = "https://github.com/christoomey/vim-tmux-navigator"
+
+[options.plugin_lazygit]
+type = "bool"
+default = false
+label = "lazygit dentro do editor"
+section = "Descobrir"
+description = "<leader>gg abre o lazygit numa janela flutuante. Precisa do módulo lazygit. Baixa ao reabrir o Neovim."
+link = "https://github.com/kdheepak/lazygit.nvim"
+
+[options.plugin_persistence]
+type = "bool"
+default = false
+label = "Lembrar os arquivos abertos (sessões)"
+section = "Descobrir"
+description = "<leader>ps reabre os arquivos que estavam abertos nesta pasta; <leader>pl, a última sessão. Baixa ao reabrir o Neovim."
+link = "https://github.com/folke/persistence.nvim"
+
+[options.plugin_render_markdown]
+type = "bool"
+default = false
+label = "Markdown desenhado no editor"
+section = "Descobrir"
+description = "Títulos, listas, tabelas e caixas de código aparecem formatados nos arquivos .md. Baixa ao reabrir o Neovim."
+link = "https://github.com/MeanderingProgrammer/render-markdown.nvim"
+
+[options.plugin_colorizer]
+type = "bool"
+default = false
+label = "Mostrar cores no código"
+section = "Descobrir"
+description = "Pinta #rrggbb, rgb() e hsl() com a própria cor (CSS, configs de tema...). Baixa ao reabrir o Neovim."
+link = "https://github.com/catgoose/nvim-colorizer.lua"
 
 [options.extra]
 type = "lines"

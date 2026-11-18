@@ -9,7 +9,9 @@ let g:loaded_my_cpp = 1
 
 augroup cpp_template
     autocmd!
-    autocmd BufNewFile *.cpp execute '0r ' . expand('~/.vim/templates/cpp.cpp')
+    autocmd BufNewFile *.cpp call IcaroInsertTemplate('cpp', '~/.vim/templates/cpp.cpp')
+    autocmd BufNewFile *.c call IcaroInsertTemplate('c', '')
+    autocmd BufNewFile *.py call IcaroInsertTemplate('python', '')
 augroup END
 
 function! CompileCpp() abort
@@ -59,19 +61,6 @@ function! TestCpp() abort
                 \ ' && ' . shellescape(l:output) . ' < input.txt'
     call IcaroRunInTerminal(l:cmd)
 endfunction
+" As teclas (F5-F8 por padrão) são globais e configuráveis no app:
+" veja IcaroAction() em config/keymaps.vim.
 
-" Atalhos locais só dentro de arquivos .cpp (não conflita com Java)
-augroup cpp_keymaps
-    autocmd!
-    autocmd FileType cpp nnoremap <buffer> <F5> :call CompileCpp()<CR>
-    autocmd FileType cpp nnoremap <buffer> <F6> :call RunCpp()<CR>
-    autocmd FileType cpp nnoremap <buffer> <F7> :call BuildRunCpp()<CR>
-    autocmd FileType cpp nnoremap <buffer> <F8> :call TestCpp()<CR>
-    " Mesmas teclas, funcionando também dentro do modo de inserção
-    " (sem te tirar dele) — evita o Vim se confundir com a sequência
-    " de escape da tecla no meio de uma digitação
-    autocmd FileType cpp inoremap <silent><buffer> <F5> <C-o>:call CompileCpp()<CR>
-    autocmd FileType cpp inoremap <silent><buffer> <F6> <C-o>:call RunCpp()<CR>
-    autocmd FileType cpp inoremap <silent><buffer> <F7> <C-o>:call BuildRunCpp()<CR>
-    autocmd FileType cpp inoremap <silent><buffer> <F8> <C-o>:call TestCpp()<CR>
-augroup END

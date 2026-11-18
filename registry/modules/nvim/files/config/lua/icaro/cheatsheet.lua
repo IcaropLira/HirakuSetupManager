@@ -2,25 +2,7 @@
 local M = {}
 
 local sections = {
-  { "TECLAS DE FUNÇÃO", {
-    { "F1",        "próximo tema            (:Th)" },
-    { "S-F1",      "tema anterior           (:Pv)" },
-    { "F2",        "explorer (neo-tree)     (:Nt)" },
-    { "F3",        "inlay hints             (:Ih)" },
-    { "F4",        "autocomplete (por linguagem) (:Ac)" },
-    { "F5",        "compilar                (:Cp)" },
-    { "F6",        "executar                (:Rn)" },
-    { "F7",        "compilar + executar     (:Br)" },
-    { "F8",        "testar com input.txt    (:Ti)" },
-    { "F9",        "terminal                (:Te)" },
-    { "S-F3/F15",  "dicas de método: assinatura + docs (:Dc)" },
-    { "S-F4/F16",  "avisos/erros do código (:Dg)" },
-    { "F10",       "fecha-pares automático  (:Pa)" },
-    { "S-F10",     "destaque de parênteses  (:Mh)" },
-    { "S-F11",     "modo silencioso         (:Of)" },
-    { "S-F12/F24", "mostra/esconde o header  (:Hd)" },
-    { "F12",       "esta folha              (:Cs)" },
-  } },
+  { "TECLAS DE FUNÇÃO", "fkeys" },
   { "GERAL", {
     { "Ctrl+S",        "salvar" },
     { "Ctrl+H/J/K/L",  "navegar entre janelas" },
@@ -74,8 +56,21 @@ function M.close()
   win, buf = nil, nil
 end
 
+-- <S-F10> -> S-F10 (como no resto da folha)
+local function pretty(k) return (k:gsub("^<(.*)>$", "%1")) end
+
+-- As teclas de função vêm das teclas atuais (app → Teclas de função).
+local function fkeys()
+  local out = {}
+  for _, c in ipairs(require("icaro.actions").current) do out[#out + 1] = { pretty(c[1]), c[2] } end
+  return out
+end
+
 function M.toggle()
   if win and vim.api.nvim_win_is_valid(win) then return M.close() end
+  local sections = vim.tbl_map(function(s)
+    return s[2] == "fkeys" and { s[1], fkeys() } or s
+  end, sections)
   local lines, marks = {}, {}
   local keyw = 0
   for _, s in ipairs(sections) do for _, kv in ipairs(s[2]) do keyw = math.max(keyw, vim.fn.strdisplaywidth(kv[1])) end end
@@ -90,7 +85,8 @@ function M.toggle()
     end
   end
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "  q / Esc / F12 fecha"
+  local own = require("icaro.actions").key("cheatsheet")
+  lines[#lines + 1] = "  q / Esc" .. (own and (" / " .. pretty(own)) or "") .. " fecha"
   marks[#marks + 1] = { #lines - 1, "Comment" }
 
   local width = 0
@@ -121,7 +117,7 @@ function M.toggle()
   })
   vim.wo[win].cursorline = true
   vim.wo[win].wrap = false
-  for _, k in ipairs({ "q", "<Esc>", "<F12>" }) do
+  for _, k in ipairs({ "q", "<Esc>", require("icaro.actions").key("cheatsheet") }) do
     vim.keymap.set("n", k, M.close, { buffer = buf, nowait = true, silent = true })
   end
   vim.api.nvim_create_autocmd("BufLeave", { buffer = buf, once = true, callback = M.close })

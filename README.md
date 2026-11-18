@@ -1,7 +1,7 @@
 # Hiraku Setup Manager
 
 Instala e mantém o setup do Ícaro — **kitty, tmux, Vim/Neovim, o shell e utilitários**
-(starship, eza, bat, zoxide, fzf, fastfetch, ripgrep, Node, JDK, Nerd Font) — num app
+(starship, eza, bat, zoxide, fzf, fastfetch, ripgrep, fd, lazygit, glow, btop, tldr, Node, JDK, Nerd Font) — num app
 desktop que depois vira o hub de configuração.
 
 ![Início](docs/img/inicio.png)
@@ -42,8 +42,23 @@ paleta/transparência do terminal e se quer atualização automática. Nada é g
   - **Vim e Neovim**: tema (com prévia de código), numeração, indentação, mouse, área de
     transferência, *o que o `dd`/`x`/`c` fazem* (copiam ou não), colar sem perder o copiado,
     busca, tecla líder, **seus atalhos** (com prontos como `jk` para sair do insert), plugins
-    liga/desliga e um campo de configuração extra.
+    liga/desliga e um campo de configuração extra;
+  - **Teclas de função**: qual tecla faz cada ação (tema, explorer, compilar, executar,
+    testar, terminal, fecha-pares, modo silencioso, folha de atalhos, Central...). A folha
+    de atalhos (F12) mostra as teclas atuais;
+  - **Central**: o que liga e desliga (autocomplete por linguagem, inlay hints, destaque de
+    parênteses, header, dicas e avisos do LSP...), sincronizado com as teclas e com a
+    Central de dentro do Neovim;
+  - **Templates**: o texto de todo arquivo novo `.cpp`, `.c`, `.py` e `.java`
+    (`__CURSOR__` marca onde o cursor começa).
   A Central de configurações dentro do Neovim (`:RF`) mostra e altera os mesmos valores.
+- **Descobrir** (uma aba em cada programa): plugins e programas que combinam com ele,
+  desligados até você ligar — sessões que sobrevivem ao reboot no tmux (resurrect/continuum),
+  `Ctrl+h/j/k/l` entre tmux e editor, flash/oil/surround/lazygit no Neovim, fzf/commentary/
+  gitgutter no Vim, e ferramentas como lazygit, fd, glow, btop e tldr.
+- **Senha do sudo**: em Configurações → Sistema dá para lembrar a autorização. A senha não
+  é guardada: o hiraku cria uma regra em `/etc/sudoers.d` que libera só o `install` do
+  dnf/apt/pacman/zypper. Sem sudo na máquina, use o modo "Só no meu usuário".
 - **Módulos**: liga/desliga o que o hiraku mantém, fixa versões.
 - **Conflitos**: se você editou um arquivo que o hiraku também quer mudar, nada é
   sobrescrito — você vê o diff e escolhe.

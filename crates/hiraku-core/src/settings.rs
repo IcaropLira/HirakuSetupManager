@@ -65,16 +65,34 @@ pub fn settings_path(config_dir: &Path) -> PathBuf {
 impl Settings {
     pub fn load(path: &Path) -> Result<Settings> {
         match fs::read_to_string(path) {
-            Ok(src) => toml::from_str(&src).map_err(|source| Error::Parse {
-                origin: path.display().to_string(),
-                source,
-            }),
+            Ok(src) => toml::from_str(&src)
+                .map(Settings::migrate)
+                .map_err(|source| Error::Parse {
+                    origin: path.display().to_string(),
+                    source,
+                }),
             Err(e) if e.kind() == ErrorKind::NotFound => Ok(Settings::default()),
             Err(source) => Err(Error::Io {
                 path: path.to_path_buf(),
                 source,
             }),
         }
+    }
+
+    /// Valores que mudaram de nome entre versões do registry.
+    /// (módulo, opção, antigo, novo)
+    const RENAMED: &'static [(&'static str, &'static str, &'static str, &'static str)] =
+        &[("nvim", "colorscheme", "rose-pine", "o_do_lol")];
+
+    fn migrate(mut self) -> Settings {
+        for (module, key, old, new) in Self::RENAMED {
+            if let Some(v) = self.options.get_mut(*module).and_then(|o| o.get_mut(*key)) {
+                if v == old {
+                    *v = new.to_string();
+                }
+            }
+        }
+        self
     }
 
     pub fn save(&self, path: &Path) -> Result<()> {
@@ -115,6 +133,16 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn renamed_values_are_migrated_on_load() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.toml");
+        fs::write(&path, "modules = [\"nvim\"]\n[options.nvim]\ncolorscheme = \"rose-pine\"\n[options.vim]\ncolorscheme = \"rose-pine\"\n").unwrap();
+        let s = Settings::load(&path).unwrap();
+        assert_eq!(s.options["nvim"]["colorscheme"], "o_do_lol");
+        assert_eq!(s.options["vim"]["colorscheme"], "rose-pine", "só o par declarado muda");
+    }
 
     #[test]
     fn missing_file_gives_defaults() {

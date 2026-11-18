@@ -240,7 +240,9 @@ fn install_pkg(
             pm.as_str()
         )));
     }
-    if needs_sudo {
+    let argv = pkg_command(pm, package, cask, needs_sudo);
+    // Com "lembrar o sudo" (regra NOPASSWD só para o install), não há o que pedir.
+    if needs_sudo && !elevator.allows_without_password(&argv[1..]) {
         elevator.ensure_root()?;
     }
 
@@ -248,7 +250,7 @@ fn install_pkg(
         module: id.to_string(),
         what: format!("instalando {package} via {}", pm.as_str()),
     });
-    run_command(id, &pkg_command(pm, package, cask, needs_sudo), sink)?;
+    run_command(id, &argv, sink)?;
 
     Ok((
         LockedModule {

@@ -17,6 +17,41 @@ icaro = [(i, t) for i, t in icaro if i in files]
 def q(s):
     return json.dumps(s, ensure_ascii=False)
 
+# (ação, nome, padrão no Vim, padrão no Neovim). None = não existe naquele editor.
+FKEYS = [
+    ("theme_next", "Próximo tema (:Th)", "<F1>", "<F1>"),
+    ("theme_prev", "Tema anterior (:Pv)", "<S-F1>", "<S-F1>"),
+    ("explorer", "Árvore de arquivos (:Nt)", "<F2>", "<F2>"),
+    ("inlay", "Dicas de parâmetro no código (:Ih)", "<F3>", "<F3>"),
+    ("hints", "Dicas de método (:Dc)", None, "<S-F3>"),
+    ("autocomplete", "Autocomplete da linguagem (:Ac)", "<F4>", "<F4>"),
+    ("diagnostics", "Avisos e erros (:Dg)", None, "<S-F4>"),
+    ("compile", "Compilar (:Cp)", "<F5>", "<F5>"),
+    ("run", "Executar (:Rn)", "<F6>", "<F6>"),
+    ("build_run", "Compilar e executar (:Br)", "<F7>", "<F7>"),
+    ("test", "Testar com input.txt (:Ti)", "<F8>", "<F8>"),
+    ("terminal", "Terminal (:Te)", "<F9>", "<F9>"),
+    ("autopairs", "Fechar pares e aspas (:Pa)", "<F10>", "<F10>"),
+    ("matchparen", "Destaque do par de parênteses (:Mh)", "<S-F10>", "<S-F10>"),
+    ("quiet", "Modo silencioso (:Of)", "<S-F11>", "<S-F11>"),
+    ("cheatsheet", "Folha de atalhos (:Cs)", "<F12>", "<F12>"),
+    ("header", "Mostrar/esconder o header (:Hd)", "<S-F12>", ""),
+    ("central", "Central de configurações (:RF)", None, "<S-F12>"),
+]
+
+# (chave, nome, extensão, observação)
+TEMPLATES = [
+    ("cpp", "C++", ".cpp", ""),
+    ("c", "C", ".c", ""),
+    ("python", "Python", ".py", ""),
+    ("java_cp", "Java (programação competitiva)", ".java terminado em _cp", "; __CLASSNAME__ vira o nome do arquivo"),
+    ("java_main", "Java (classe comum)", ".java", "; __CLASSNAME__ vira o nome do arquivo"),
+]
+
+def template_default(k):
+    f = {"cpp": "cpp.cpp", "java_cp": "java_cp.java", "java_main": "java_main.java"}.get(k)
+    return open(f"{MOD}/vim/files/templates/{f}").read() if f else ""
+
 def opt(key, kind, default=None, label="", section="", description="", **extra):
     return dict(key=key, kind=kind, default=default, label=label, section=section, description=description, **extra)
 
@@ -29,7 +64,7 @@ def editor(name):
     A, E, C, B, T, P, X = "Aparência", "Edição", "Copiar, recortar e colar", "Busca", "Atalhos", "Plugins", "Avançado"
     O += [
         opt("colorscheme", "choice", "auto", "Tema", A,
-            "Colorscheme do editor. \"O último escolhido no editor\" deixa a troca com F3/:Th.",
+            "Colorscheme do editor. \"O último escolhido no editor\" deixa a troca com F1/:Th.",
             values=values, labels=labels, preview="../icaro-themes/files/icaro-theme/colors/{value}.vim"),
         opt("transparent", "bool", False, "Fundo transparente", A,
             "Usa o fundo do terminal no lugar do fundo do tema (combina com a opacidade do kitty)."),
@@ -88,6 +123,49 @@ def editor(name):
         opt("keymaps", "keymaps", None, "Meus atalhos", T,
             "Valem por cima dos atalhos do Ícaro. Para desativar um atalho existente, use <Nop> como ação."),
     ]
+    # Teclas de função: cada ação do Ícaro com a tecla que a dispara (F1, Shift+F1...).
+    FK = "Teclas de função"
+    first = True
+    for k, label, dv, dn in FKEYS:
+        d = dn if nvim else dv
+        if d is None:
+            continue
+        desc = f"Padrão: {d or 'nenhuma'}."
+        if first:
+            desc += " Vale qualquer tecla do Vim: <F5>, <S-F5> (Shift+F5), <C-t>, <leader>t. Vazio = sem tecla. A folha de atalhos mostra as teclas atuais."
+            first = False
+        O.append(opt(f"key_{k}", "string", d, label, FK, desc))
+    # Central: o que a Central / as teclas ligam e desligam, e com que valor o editor abre.
+    CE = "Central"
+    O += [
+        opt("autocomplete_cpp", "bool", True, "Autocomplete em C++", CE, "O mesmo que a tecla de autocomplete (F4) num arquivo C++."),
+        opt("autocomplete_java", "bool", True, "Autocomplete em Java", CE),
+        opt("autocomplete_python", "bool", True, "Autocomplete em Python", CE),
+    ]
+    if nvim:
+        O.append(opt("autocomplete_outros", "bool", True, "Autocomplete nas outras linguagens", CE))
+    O += [
+        opt("inlay", "bool", True, "Dicas de parâmetro no código (inlay hints)", CE, "Texto fantasma tipo nome: valor ao chamar funções."),
+        opt("matchparen", "bool", True, "Destacar o par de parênteses", CE),
+        opt("header", "bool", True, "Header no topo da janela", CE),
+    ]
+    if nvim:
+        O += [
+            opt("hints", "bool", False, "Dicas de método (assinatura e documentação)", CE, "Popups com a assinatura do método e a documentação ao lado das sugestões."),
+            opt("diagnostics", "bool", True, "Avisos e erros no código", CE, "Texto, sublinhado e sinais de erro/aviso do LSP."),
+            opt("lsp_progress", "bool", False, "Mensagens de progresso do LSP", CE, "Ex.: \"Validate documents jdtls\" no canto."),
+            opt("spell", "bool", False, "Correção ortográfica", CE),
+            opt("showmode", "bool", False, "Mostrar o modo na linha de comando", CE, "A barra de status já mostra o modo."),
+            opt("smartindent", "bool", True, "Indentação inteligente", CE),
+            opt("autoindent", "bool", True, "Manter a indentação da linha anterior", CE),
+            opt("backup", "bool", False, "Criar backups automáticos", CE),
+            opt("writebackup", "bool", True, "Backup antes de sobrescrever", CE),
+        ]
+    # Templates: texto de todo arquivo novo de cada linguagem.
+    TP = "Templates"
+    tdesc = "Texto de todo arquivo {ext} novo. __CURSOR__ marca onde o cursor começa{extra}. Vazio = arquivo em branco."
+    for k, label, ext, extra in TEMPLATES:
+        O.append(opt(f"template_{k}", "lines", template_default(k), label, TP, tdesc.format(ext=ext, extra=extra)))
     if nvim:
         plugins = [
             ("neo_tree", "Árvore de arquivos (Neo-tree, F2)"), ("telescope", "Busca de arquivos e texto (Telescope)"),
@@ -106,6 +184,36 @@ def editor(name):
         desc = "Desligar não apaga o plugin; ele só deixa de carregar (reabra o Vim)."
     for k, label in plugins:
         O.append(opt(f"plugin_{k}", "bool", True, label, P, desc))
+    # Descobrir: extras que começam desligados; ligar baixa o plugin.
+    D = "Descobrir"
+    if nvim:
+        found = [
+            ("flash", "Pular para qualquer lugar (flash)", "<leader>j + duas letras leva o cursor a qualquer ponto visível da tela.", "https://github.com/folke/flash.nvim"),
+            ("surround", "Trocar o que está em volta (surround)", "cs\"' troca aspas por apóstrofos, ds( tira parênteses, ysiw] cerca a palavra.", "https://github.com/kylechui/nvim-surround"),
+            ("oil", "Editar pastas como texto (oil)", "\"-\" abre a pasta do arquivo: renomeie, mova e apague editando as linhas e salve com :w.", "https://github.com/stevearc/oil.nvim"),
+            ("toggleterm", "Terminal flutuante (toggleterm)", "Ctrl+\\ abre e fecha um terminal por cima do código.", "https://github.com/akinsho/toggleterm.nvim"),
+            ("zen_mode", "Modo foco (zen-mode)", "<leader>z centraliza o texto e esconde números, barras e abas.", "https://github.com/folke/zen-mode.nvim"),
+            ("tmux_navigator", "Navegar junto com o tmux", "Ctrl+h/j/k/l anda entre janelas do Neovim e painéis do tmux. Ligue também no Descobrir do tmux.", "https://github.com/christoomey/vim-tmux-navigator"),
+            ("lazygit", "lazygit dentro do editor", "<leader>gg abre o lazygit numa janela flutuante. Precisa do módulo lazygit.", "https://github.com/kdheepak/lazygit.nvim"),
+            ("persistence", "Lembrar os arquivos abertos (sessões)", "<leader>ps reabre os arquivos que estavam abertos nesta pasta; <leader>pl, a última sessão.", "https://github.com/folke/persistence.nvim"),
+            ("render_markdown", "Markdown desenhado no editor", "Títulos, listas, tabelas e caixas de código aparecem formatados nos arquivos .md.", "https://github.com/MeanderingProgrammer/render-markdown.nvim"),
+            ("colorizer", "Mostrar cores no código", "Pinta #rrggbb, rgb() e hsl() com a própria cor (CSS, configs de tema...).", "https://github.com/catgoose/nvim-colorizer.lua"),
+        ]
+        tail = " Baixa ao reabrir o Neovim."
+    else:
+        found = [
+            ("surround", "Trocar o que está em volta (surround)", "cs\"' troca aspas por apóstrofos, ds( tira parênteses, ysiw] cerca a palavra.", "https://github.com/tpope/vim-surround"),
+            ("commentary", "Comentar com gcc (commentary)", "gcc comenta a linha; gc no modo visual comenta a seleção, em qualquer linguagem.", "https://github.com/tpope/vim-commentary"),
+            ("fzf", "Buscar arquivos e texto (fzf.vim)", "<leader>ff arquivos, <leader>fg texto (ripgrep), <leader>fb buffers. Precisa dos módulos fzf e ripgrep.", "https://github.com/junegunn/fzf.vim"),
+            ("gitgutter", "Marcas de git na margem (gitgutter)", "Mostra linhas adicionadas, mudadas e apagadas ao lado da numeração.", "https://github.com/airblade/vim-gitgutter"),
+            ("tmux_navigator", "Navegar junto com o tmux", "Ctrl+h/j/k/l anda entre janelas do Vim e painéis do tmux. Ligue também no Descobrir do tmux.", "https://github.com/christoomey/vim-tmux-navigator"),
+            ("startify", "Tela inicial com arquivos recentes (startify)", "Abrir o Vim sem arquivo mostra os recentes e as sessões salvas.", "https://github.com/mhinz/vim-startify"),
+            ("goyo", "Modo foco (goyo)", "<leader>z centraliza o texto e esconde o resto da interface.", "https://github.com/junegunn/goyo.vim"),
+            ("indentline", "Guias de indentação (indentLine)", "Uma linha fininha marca cada nível de indentação.", "https://github.com/Yggdroot/indentLine"),
+        ]
+        tail = " Baixa na hora, com o Vim aberto."
+    for k, label, d, link in found:
+        O.append(opt(f"plugin_{k}", "bool", False, label, D, d + tail, link=link))
     O.append(opt("extra", "lines", "", "Configuração extra", X,
                  ("Código Lua" if nvim else "Vimscript") + " executado por último, a cada vez que as opções são aplicadas. Para o que não tem botão aqui."))
     return O
@@ -137,6 +245,8 @@ def options_toml(O):
             out.append(f"description = {q(o['description'])}")
         if "preview" in o:
             out.append(f"preview = {q(o['preview'])}")
+        if "link" in o:
+            out.append(f"link = {q(o['link'])}")
         if "labels" in o:
             out.append(f"[options.{o['key']}.labels]")
             for k, v in o["labels"].items():

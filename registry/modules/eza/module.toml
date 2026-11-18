@@ -3,6 +3,8 @@ id = "eza"
 name = "eza"
 description = "Substituto moderno do ls (com ícones)"
 platforms = ["linux", "macos", "windows"]
+homepage = "https://github.com/eza-community/eza"
+discover = ["shell"]
 
 [[install]]
 when = { os = "linux", arch = "x86_64" }

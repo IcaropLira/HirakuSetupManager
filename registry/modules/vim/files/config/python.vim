@@ -23,12 +23,6 @@ function! RunPython() abort
     let l:cmd = l:py . ' ' . shellescape(l:file)
     call IcaroRunInTerminal(l:cmd)
 endfunction
+" As teclas (F5-F8 por padrão) são globais e configuráveis no app:
+" veja IcaroAction() em config/keymaps.vim.
 
-" Atalho local só dentro de arquivos .py (não conflita com C++/Java)
-augroup python_keymaps
-    autocmd!
-    autocmd FileType python nnoremap <buffer> <F7> :call RunPython()<CR>
-    " Mesma tecla, funcionando também dentro do modo de inserção (sem
-    " te tirar dele) — mesmo motivo do C++/Java, veja config/cpp.vim
-    autocmd FileType python inoremap <silent><buffer> <F7> <C-o>:call RunPython()<CR>
-augroup END

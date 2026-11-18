@@ -122,6 +122,8 @@ let g:icaro_header_hidden    = s:ReadFlag(g:icaro_header_state_file, 0)
 " Highlight de parênteses/colchetes/chaves correspondentes (:h
 " matchparen) — Shift+F10, veja config/appearance.vim
 let g:icaro_matchparen_enabled = s:ReadFlag(g:icaro_matchparen_state_file, 1)
+" O que o app (aba Central) define vale por cima do estado salvo nos arquivinhos.
+call HirakuApplyToggles()
 
 " O coc.nvim continua iniciando normalmente sempre: como o toggle
 " agora é por linguagem (e não um interruptor único), quem decide se
@@ -262,6 +264,10 @@ endif
 if HirakuPlugin('coc')
     silent! packadd! coc.nvim
 endif
+
+" Extras ligados na aba Descobrir do app (baixados sob demanda).
+source ~/.vim/config/discover.vim
+call HirakuApplyDiscover()
 
 " A limpeza/restauração do terminal é feita pelo wrapper instalado em
 " ~/.local/bin/vim depois que o processo do Vim realmente termina.

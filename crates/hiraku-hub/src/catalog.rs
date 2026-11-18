@@ -42,6 +42,8 @@ pub struct OptSpec {
     pub labels: BTreeMap<String, String>,
     /// Tem pré-visualização de cores por valor.
     pub has_preview: bool,
+    /// Página do projeto (plugins da aba Descobrir).
+    pub link: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -52,6 +54,9 @@ pub struct ModuleInfo {
     pub supported: bool,
     pub requires: Vec<String>,
     pub options: Vec<OptSpec>,
+    pub homepage: Option<String>,
+    /// Módulos em cuja aba "Descobrir" este aparece.
+    pub discover: Vec<String>,
 }
 
 pub fn build_catalog(manifests: &[(Manifest, PathBuf)], os: Os) -> Vec<ModuleInfo> {
@@ -68,6 +73,8 @@ pub fn build_catalog(manifests: &[(Manifest, PathBuf)], os: Os) -> Vec<ModuleInf
                 .iter()
                 .map(|(key, def)| OptSpec::from_def(&m.id, key, def))
                 .collect(),
+            homepage: m.homepage.clone(),
+            discover: m.discover.clone(),
         })
         .collect();
     out.sort_by(|a, b| a.id.cmp(&b.id));
@@ -103,6 +110,7 @@ impl OptSpec {
             section: def.section.clone(),
             labels,
             has_preview: def.preview.is_some(),
+            link: def.link.clone(),
         }
     }
 
@@ -378,6 +386,8 @@ mod tests {
             supported: true,
             requires: req.iter().map(|s| s.to_string()).collect(),
             options: vec![],
+            homepage: None,
+            discover: Vec::new(),
         };
         let cat = vec![
             info("font", &[]),

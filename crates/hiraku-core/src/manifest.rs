@@ -34,6 +34,12 @@ pub struct Manifest {
     /// Scripts/comandos executados depois da instalação e das configs.
     #[serde(default)]
     pub hook: Vec<Hook>,
+    /// Página do projeto (https), mostrada no app.
+    #[serde(default)]
+    pub homepage: Option<String>,
+    /// Módulos em cuja aba "Descobrir" este aparece como sugestão (ex.: ["shell", "nvim"]).
+    #[serde(default)]
+    pub discover: Vec<String>,
 }
 
 /// Uma opção configurável do módulo: o tipo (`kind`) e os metadados comuns que a
@@ -54,6 +60,9 @@ pub struct OptionDef {
     /// escolha; `{value}` vira o valor. Ex.: `../icaro-themes/files/colors/{value}.vim`.
     #[serde(default)]
     pub preview: Option<String>,
+    /// Página do projeto (https) de um plugin/extra, mostrada no app.
+    #[serde(default)]
+    pub link: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -426,6 +435,19 @@ impl Manifest {
         }
         if self.name.trim().is_empty() {
             return Err(bad("name vazio".to_string()));
+        }
+        let links = self
+            .homepage
+            .iter()
+            .map(|l| ("homepage".to_string(), l))
+            .chain(self.options.iter().filter_map(|(k, o)| o.link.as_ref().map(|l| (format!("options.{k}.link"), l))));
+        for (at, link) in links {
+            if !link.starts_with("https://") || link.contains(char::is_whitespace) {
+                return Err(bad(format!("{at}: o link precisa começar com https:// e não ter espaços")));
+            }
+        }
+        if let Some(bad_id) = self.discover.iter().find(|d| !is_valid_id(d)) {
+            return Err(bad(format!("discover: '{bad_id}' não é um id de módulo")));
         }
 
         for (key, option) in &self.options {

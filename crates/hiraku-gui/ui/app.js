@@ -46,7 +46,7 @@ const EDITORS = [["Vim e Neovim", ["vim", "nvim"], "Os dois, com os mesmos atalh
 const UPDATES = [[21600, "A cada 6 horas", "Fica sempre em dia sem você lembrar."], [86400, "Uma vez por dia", "Recomendado: atualiza em segundo plano."], [null, "Só quando eu mandar", "Nada roda sozinho; use Sincronizar."]];
 const GLYPH = { kitty: "K", tmux: "T", vim: "V", nvim: "N", node: "⬢", jdk: "J", shell: "$", starship: "✦", eza: "≡", bat: "B", zoxide: "Z", fzf: "F", fastfetch: "ℹ", ripgrep: "R", "font-jetbrains-mono": "Aa", "icaro-themes": "❖", "dev-prereqs": "⚙" };
 
-const applogo = () => '<img class="applogo" src="logos/hsm.svg" alt="" draggable="false">';
+const applogo = () => '<svg class="applogo" viewBox="0 0 100 100" aria-hidden="true"><path fill="url(#lgA)" fill-rule="evenodd" d="M50 3C74 3 93 24 93 50S74 97 50 97 7 76 7 50 26 3 50 3ZM50 10C64 10 73 28 73 50S64 90 50 90 27 72 27 50 36 10 50 10Z"/><path fill="none" style="stroke:color-mix(in srgb,var(--acc) 70%,#fff)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" d="M40 38 50 48 40 58"/><path style="stroke:color-mix(in srgb,var(--acc) 70%,#fff)" stroke-width="5.5" stroke-linecap="round" d="M53 59H62"/></svg>';
 // Logos do projeto IcaroPintoLira (public/assets): uma por programa configurado.
 const LOGO = { kitty: "terminal", shell: "terminal", tmux: "tmux", nvim: "neovim", vim: "vim" };
 const tile = (m, cls = "") => LOGO[m.id]
@@ -287,7 +287,7 @@ function optionRow(spec, settings) {
       return `<div class="st-row">${lbl}<div class="colorpick"><input type="color" value="${esc(v)}" data-color="${id}"><input class="txt" value="${esc(v)}" data-colortext="${id}" maxlength="7" spellcheck="false"></div></div>`;
     case "lines": {
       const presets = spec.module === "tmux" ? `<div class="bar presets">${TMUX_PRESETS.map(([t], i) => `<button class="chip" data-lines-preset="${id}" data-i="${i}">+ ${esc(t)}</button>`).join("")}</div>` : "";
-      return `<div class="st-row col">${lbl}${presets}<textarea class="code-edit" rows="${Math.min(14, Math.max(4, v.split("\n").length + 1))}" data-lines="${id}" spellcheck="false" placeholder="${spec.module === "tmux" ? "bind -n M-z resize-pane -Z" : spec.module === "nvim" ? "vim.opt.spelllang = 'pt_br'" : "set spelllang=pt_br"}">${esc(v)}</textarea><small class="mut">Grava ao sair do campo.</small></div>`;
+      return `<div class="st-row col">${lbl}${presets}<textarea class="code-edit" rows="${Math.min(spec.key.startsWith("template_") ? 24 : 14, Math.max(4, v.split("\n").length + 1))}" data-lines="${id}" spellcheck="false" placeholder="${spec.key.startsWith("template_") ? "(sem template: o arquivo novo começa vazio)" : spec.module === "tmux" ? "bind -n M-z resize-pane -Z" : spec.module === "nvim" ? "vim.opt.spelllang = 'pt_br'" : "set spelllang=pt_br"}">${esc(v)}</textarea><small class="mut">Grava ao sair do campo.</small></div>`;
     }
     case "keymaps":
       return `<div class="st-row col">${lbl}${keymapsEditor(id, v)}</div>`;
@@ -483,6 +483,30 @@ function customMods() {
   return catalog().filter(m => m.supported && m.options.length).sort((a, b) => rank(a.id) - rank(b.id));
 }
 const changedCount = m => m.options.filter(o => optValue(o, SNAP.settings) !== o.default).length;
+// ------------------------------------------------------------------ Descobrir
+// Cada programa tem uma aba com extras: plugins (opções da seção "Descobrir", que
+// começam desligadas) e programas do registry marcados com `discover = [<id>]`.
+const DISC = "Descobrir";
+const discoverMods = id => catalog().filter(x => x.supported && (x.discover || []).includes(id));
+const linkBtn = url => url ? `<button class="dc-link" data-link="${esc(url)}" title="${esc(url)}">${esc(url.replace(/^https:\/\/(github\.com\/)?/, "").replace(/\/$/, ""))} ↗</button>` : "";
+function discoverHTML(m, dopts, dmods) {
+  const card = (on, head, desc, foot) => `<article class="dc-card ${on ? "on" : ""}">${head}<p>${esc(desc)}</p><div class="dc-foot">${foot}</div></article>`;
+  const plugins = dopts.map(s => {
+    const on = optValue(s, SNAP.settings) === "true";
+    return card(on, `<div class="dc-top"><b>${esc(specLabel(s))}</b><label class="sw"><input type="checkbox" data-bool="${s.module}.${s.key}" ${on ? "checked" : ""}><i></i></label></div>`,
+      s.description || "", linkBtn(s.link));
+  }).join("");
+  const tools = dmods.map(x => {
+    const on = enabled(x.id), r = row(x.id), inst = r && r.installed;
+    const st = inst ? `<span class="tag ok">instalado</span>` : on ? `<button class="hx-btn sm" data-install="${x.id}">Instalar agora</button>` : "";
+    return card(on, `<div class="dc-top">${tile(x, "sm")}<b>${esc(x.name)}</b><label class="sw" title="${on ? "Desabilitar" : "Habilitar"} no sync"><input type="checkbox" data-toggle="${x.id}" ${on ? "checked" : ""}><i></i></label></div>`,
+      x.description, `${st}${linkBtn(x.homepage)}`);
+  }).join("");
+  return `<p class="dc-intro mut">Extras que combinam com o ${esc(m.name)}. Ligue e o hiraku baixa e configura; desligar não apaga nada.</p>
+    ${plugins ? `<div class="dc-sub">Plugins</div><div class="dc-grid">${plugins}</div>` : ""}
+    ${tools ? `<div class="dc-sub">Programas</div><div class="dc-grid">${tools}</div>` : ""}`;
+}
+
 function viewCustom() {
   const mods = customMods();
   if (!mods.length) return `<div class="hx-wrap one"><div class="hx-panel mut">Nenhum módulo com opções.</div></div>`;
@@ -493,20 +517,25 @@ function viewCustom() {
     return `<button class="cz-item ${x.id === CZ_MOD ? "on" : ""}" data-czmod="${x.id}">${tile(x, "sm")}<span><b>${esc(x.name)}</b><small>${x.options.length} opções${n ? ` · <em>${n} alterada${n > 1 ? "s" : ""}</em>` : ""}</small></span></button>`;
   }).join("");
   const specs = sortedSpecs([m]);
-  const secs = sectionsOf(specs);
+  const dmods = discoverMods(m.id);
+  const dopts = specs.filter(s => s.section === DISC);
+  const secs = sectionsOf(specs).filter(x => x !== DISC);
+  if (dmods.length || dopts.length) secs.push(DISC);
   if (!secs.includes(CZ_SEC[m.id])) CZ_SEC[m.id] = secs[0];
   const q = CZ_Q.trim().toLowerCase();
   const shown = q
     ? specs.filter(s => (specLabel(s) + " " + s.key + " " + (s.description || "")).toLowerCase().includes(q))
     : specs.filter(s => (s.section || "") === CZ_SEC[m.id]);
   const tabs = secs.length > 1 && !q ? `<div class="cz-tabs" role="tablist">${secs.map(sec => {
-    const n = specs.filter(s => (s.section || "") === sec && optValue(s, SNAP.settings) !== s.default).length;
-    return `<button role="tab" class="${sec === CZ_SEC[m.id] ? "on" : ""}" data-czsec="${esc(sec)}">${esc(sec || "Geral")}${n ? `<i>${n}</i>` : ""}</button>`;
+    const n = specs.filter(s => (s.section || "") === sec && optValue(s, SNAP.settings) !== s.default).length
+      + (sec === DISC ? dmods.filter(x => enabled(x.id)).length : 0);
+    return `<button role="tab" class="${sec === CZ_SEC[m.id] ? "on" : ""} ${sec === DISC ? "disc" : ""}" data-czsec="${esc(sec)}">${sec === DISC ? "✦ " : ""}${esc(sec || "Geral")}${n ? `<i>${n}</i>` : ""}</button>`;
   }).join("")}</div>` : "";
   const hasTerm = m.options.some(o => o.key === "palette") && m.options.some(o => o.key === "opacity");
   const live = ["vim", "nvim", "tmux", "kitty"].includes(m.id) ? `<span class="tag acc" title="O programa aberto percebe a mudança e reaplica sozinho">aplica com ele aberto</span>` : "";
   const off = !enabled(m.id) ? `<span class="tag">desabilitado no sync</span>` : "";
-  const body = shown.length ? shown.map(s => optionRow(s, SNAP.settings)).join("")
+  const body = !q && CZ_SEC[m.id] === DISC ? discoverHTML(m, dopts, dmods)
+    : shown.length ? shown.map(s => optionRow(s, SNAP.settings)).join("")
     : `<div class="mut" style="padding:18px 0">Nenhuma opção com “${esc(CZ_Q)}”.</div>`;
   return `<div class="hx-wrap one"><div class="cz">
     <aside class="cz-rail glass" aria-label="Programas">
@@ -574,7 +603,7 @@ function viewUpdates() {
 function bindView() {
   const v = $("#view");
   v.onclick = async e => {
-    const t = e.target.closest("[data-v],[data-act],[data-goto],[data-czmod],[data-czsec],[data-filter],[data-pin],[data-apply],[data-cf],[data-resolve],[data-every]");
+    const t = e.target.closest("[data-v],[data-act],[data-goto],[data-czmod],[data-czsec],[data-filter],[data-pin],[data-apply],[data-cf],[data-resolve],[data-every],[data-link],[data-install]");
     if (!t || !v.contains(t)) return;
     const d = t.dataset;
     if (d.v) return go(d.v);
@@ -593,6 +622,10 @@ function bindView() {
     }
     if ("every" in d) return setSchedule(d.every ? Number(d.every) : null);
     if (d.act) return action(d.act);
+    const lk = e.target.closest("[data-link]");
+    if (lk) return call("open_url", { url: lk.dataset.link }).catch(fail);
+    const ins = e.target.closest("[data-install]");
+    if (ins) return runSync(ins.dataset.install);
   };
   v.oninput = e => {
     if (e.target.id !== "czq") return;
@@ -603,6 +636,8 @@ function bindView() {
     if (q) { q.focus(); q.setSelectionRange(pos, pos); }
   };
   v.onchange = async e => {
+    const dc = e.target.closest(".dc-card");
+    if (dc && e.target.matches("[data-bool]")) dc.classList.toggle("on", e.target.checked);
     const tg = e.target.closest("[data-toggle]");
     if (tg) {
       try { const on = await call("toggle_module", { id: tg.dataset.toggle }); toast(`${tg.dataset.toggle}: ${on ? "habilitado (vale no próximo sync)" : "desabilitado (o que foi instalado continua)"}`); }
@@ -697,19 +732,35 @@ function modal(html, cls = "") {
   return o.firstElementChild;
 }
 function closeModal() { const o = $("#overlay"); o.hidden = true; o.innerHTML = ""; }
-function sudoDialog(mods) {
+// "Lembrar o sudo": regra do sudoers que deixa só o install do dnf/apt/... sem senha.
+function sudoRow() {
+  if (INFO.os !== "linux" || !INFO.pkg_needs_root || INFO.is_root) return "";
+  if (!INFO.can_root) return `<div class="st-row"><div class="st-lbl"><b>Senha do sudo</b><small>Esta máquina não tem sudo para você: use o modo "Só no meu usuário" e tudo vai para ~/.local, sem senha.</small></div></div>`;
+  return `<div class="st-row"><div class="st-lbl"><b>Lembrar a senha do sudo</b><small>Deixa o hiraku instalar pacotes do sistema sem pedir senha. A senha não é guardada: o sudo passa a liberar só o <code>install</code> do gerenciador de pacotes (regra em /etc/sudoers.d). O resto do sudo continua pedindo senha.</small></div><label class="sw"><input type="checkbox" id="sudosave" ${INFO.sudo_saved ? "checked" : ""}><i></i></label></div>`;
+}
+function sudoDialog(mods, mode = {}) {
+  const canSave = INFO.os === "linux" && INFO.pkg_needs_root && !INFO.sudo_saved && !mode.forget;
+  const what = mode.forget ? "Para voltar a pedir a senha ao instalar, confirme uma última vez."
+    : mods.length ? `Para instalar com o gerenciador de pacotes do sistema: <b>${esc(mods.join(", "))}</b>.`
+    : "Para o hiraku instalar pacotes do sistema sem pedir senha de novo.";
   return new Promise(resolve => {
     const p = modal(`<div class="st-head"><h2>Senha de administrador</h2><button class="x" data-x>✕</button></div>
-      <div class="st-pad"><p class="mut" style="margin-top:0">Para instalar com o gerenciador de pacotes do sistema: <b>${esc(mods.join(", "))}</b>.</p>
+      <div class="st-pad"><p class="mut" style="margin-top:0">${what}</p>
       <input class="field" type="password" id="pw" placeholder="sua senha do sudo" autocomplete="current-password">
+      ${canSave ? `<label class="chk"><input type="checkbox" id="pwsave" ${mode.remember ? "checked" : ""}> Lembrar: não pedir de novo nesta máquina</label>` : ""}
       <div class="err-t" id="pwerr"></div><small class="mut">A senha vai direto para o <code>sudo</code> e não é guardada. Prefere sem sudo? Mude o modo para "Só no meu usuário" nas Configurações.</small>
       <div class="hx-cta" style="justify-content:flex-end"><button class="hx-btn ghost" data-x>Cancelar</button><button class="hx-btn" id="pwok">Continuar</button></div></div>`, "small");
     const done = v => { closeModal(); resolve(v); };
     $$("[data-x]", p).forEach(b => b.onclick = () => done(false));
     const go = async () => {
       $("#pwok").disabled = true;
-      try { await call("sudo_auth", { password: $("#pw").value }); done(true); }
-      catch (e) { $("#pwerr").textContent = String(e); $("#pwok").disabled = false; $("#pw").select(); }
+      const password = $("#pw").value, save = $("#pwsave")?.checked;
+      try {
+        if (save || mode.forget) toast(await call("sudo_remember", { password, on: !!save }));
+        if (mods.length || !(save || mode.forget)) await call("sudo_auth", { password });
+        if (save || mode.forget) INFO.sudo_saved = !!save;
+        done(true);
+      } catch (e) { $("#pwerr").textContent = String(e); $("#pwok").disabled = false; $("#pw").select(); }
     };
     $("#pwok").onclick = go;
     $("#pw").onkeydown = e => { if (e.key === "Enter") go(); if (e.key === "Escape") done(false); };
@@ -757,6 +808,7 @@ function settingsOpen(tab) {
     const m = SNAP.settings.mode || null;
     body.innerHTML = `<div class="st-sec">Instalação</div>
       <div class="st-row col"><div class="st-lbl"><b>Modo</b><small>Onde e como os programas são instalados.</small></div><div class="opt-grid">${MODES.map(([k, t, d, ic]) => `<button class="opt ${m === k ? "on" : ""}" data-mode="${k ?? ""}"><span class="ic">${ic}</span><b>${t}</b><small>${d}</small>${k === "system" && !INFO.can_root ? '<span class="warn">sudo não detectado nesta máquina</span>' : ""}</button>`).join("")}</div></div>
+      ${sudoRow()}
       <div class="st-sec">Este app</div>
       <div class="st-row"><div class="st-lbl"><b>Atualizar o app sozinho</b><small>Procura versão nova ao abrir e a cada 6 h, baixa em segundo plano e só pede para reiniciar.</small></div><label class="sw"><input type="checkbox" id="autoapp" ${UI.autoApp !== false ? "checked" : ""}><i></i></label></div>
       <div class="st-row"><div class="st-lbl"><b>Arquivo de configurações</b><small style="font-family:var(--mono)">${esc(INFO.settings_file)}</small></div><button class="hx-btn ghost sm" id="od">Abrir pasta</button></div>
@@ -764,6 +816,13 @@ function settingsOpen(tab) {
     body.onclick = async e => {
       const t = e.target.closest("[data-mode]");
       if (t) { try { await call("set_mode", { mode: t.dataset.mode || null }); toast("Modo salvo. Vale no próximo sync."); } catch (err) { fail(err); } await reload(); settingsOpen(); }
+    };
+    const sw = $("#sudosave");
+    if (sw) sw.onchange = async e => {
+      const on = e.target.checked;
+      e.target.checked = !on; // só muda de verdade se o sudo aceitar
+      if (await sudoDialog([], { remember: on, forget: !on })) await reload();
+      settingsOpen();
     };
     $("#od").onclick = () => call("open_config_dir").catch(fail);
     $("#autoapp").onchange = e => { UI.autoApp = e.target.checked; saveUI(); };
@@ -1029,7 +1088,7 @@ const MOCK = {
   cat() {
     const o = (key, kind, def, description) => ({ module: "kitty", key, kind, default: def, description });
     const m = (id, name, description, requires = [], options = []) => ({ id, name, description, supported: true, requires, options });
-    return [
+    const list = [
       m("bat", "bat", "Substituto do cat com realce de sintaxe"),
       m("font-jetbrains-mono", "JetBrainsMono Nerd Font", "Fonte com ícones (Nerd Font) usada pelo kitty, vim e nvim"),
       m("icaro-themes", "Temas do Ícaro", "Colorschemes compartilhados pelo vim e pelo nvim (90 arquivos)"),
@@ -1040,6 +1099,8 @@ const MOCK = {
       m("tmux", "tmux", "Multiplexador de terminal (prefixo Ctrl+A)"),
       m("vim", "Vim", "Vim com tema, plugins (airline, nerdtree, coc...) e wrapper", ["icaro-themes", "font-jetbrains-mono"]),
     ].map(x => (window.MOCK_EXTRA && window.MOCK_EXTRA.catalog[x.id]) || x);
+    if (window.MOCK_EXTRA) list.push(...Object.values(window.MOCK_EXTRA.catalog).filter(x => !list.some(y => y.id === x.id)));
+    return list;
   },
   report: null,
   async call(cmd, a) {
@@ -1047,7 +1108,7 @@ const MOCK = {
     if (!this.settings) this.settings = { schema: 1, modules: [], pins: {}, options: {} };
     const s = this.settings;
     switch (cmd) {
-      case "info": return { version: "0.1.0", env_label: "linux · fedora · x86_64 · sudo disponível", os: "linux", can_root: true, is_root: false, first_run: this.first && !new URLSearchParams(location.search).has("hub"), registry_version: 1, registry_source: "embedded", settings_file: "/home/icaro/.config/hiraku/settings.toml", state_dir: "/home/icaro/.local/state/hiraku", running: false };
+      case "info": return { version: "0.1.0", env_label: "linux · fedora · x86_64 · sudo disponível", os: "linux", can_root: true, is_root: false, sudo_saved: !!this.sudoSaved, pkg_needs_root: true, first_run: this.first && !new URLSearchParams(location.search).has("hub"), registry_version: 1, registry_source: "embedded", settings_file: "/home/icaro/.config/hiraku/settings.toml", state_dir: "/home/icaro/.local/state/hiraku", running: false };
       case "snapshot": {
         if (new URLSearchParams(location.search).has("hub") && !s.modules.length) { s.modules = ["kitty", "font-jetbrains-mono", "shell", "nvim", "tmux"]; s.options = { kitty: { palette: "nord" } }; this.first = false; this.report = this.fakeReport(); }
         const cat = this.cat();
@@ -1069,6 +1130,7 @@ const MOCK = {
       case "resolve": return null;
       case "needs_root": return [];
       case "sudo_auth": return null;
+      case "sudo_remember": this.sudoSaved = a.on; return a.on ? "Pronto: o dnf instala sem pedir senha." : "O sudo volta a pedir senha para instalar.";
       case "refresh_registry": return null;
       case "open_config_dir": return null;
       case "open_url": this.opened = a.url; return null;

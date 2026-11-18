@@ -149,6 +149,60 @@ impl Services {
         }
     }
 
+    /// "Lembrar o sudo" está ligado? (o install do gerenciador roda sem senha)
+    pub fn sudo_saved(&self) -> bool {
+        self.env.privilege == Privilege::Sudo
+            && self.env.pkg_manager.is_some_and(hiraku_core::elevate::install_without_password)
+    }
+
+    /// Liga/desliga o "lembrar o sudo": grava (ou apaga) a regra em /etc/sudoers.d,
+    /// validada pelo `visudo` antes de entrar no lugar. A senha só vai para o sudo.
+    pub fn set_sudo_saved(&self, password: &str, on: bool) -> Result<String, String> {
+        use hiraku_core::elevate::{sudo_rule, sudoers_file};
+        use std::process::Command;
+        let pm = self
+            .env
+            .pkg_manager
+            .filter(|pm| pm.needs_root())
+            .ok_or("aqui os programas não precisam de sudo para instalar")?;
+        if self.env.privilege != Privilege::Sudo {
+            return Err("esta máquina não tem sudo para você".to_string());
+        }
+        let user = Command::new("id")
+            .arg("-un")
+            .output()
+            .ok()
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+            .unwrap_or_default();
+        let file = sudoers_file(&user);
+        self.sudo_authenticate(password)?;
+        let sudo = |args: &[&str]| -> Result<(), String> {
+            let out = Command::new("sudo").arg("-n").args(args).output().map_err(|e| e.to_string())?;
+            if out.status.success() {
+                Ok(())
+            } else {
+                Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+            }
+        };
+        if !on {
+            sudo(&["rm", "-f", &file.display().to_string()])?;
+            return Ok("O sudo volta a pedir senha para instalar.".to_string());
+        }
+        let rule = sudo_rule(&user, pm).ok_or_else(|| format!("não consegui montar a regra para '{user}'"))?;
+        std::fs::create_dir_all(&self.state_dir).map_err(|e| e.to_string())?;
+        let tmp = self.state_dir.join("sudoers.tmp");
+        std::fs::write(&tmp, rule).map_err(|e| e.to_string())?;
+        let tmp_s = tmp.display().to_string();
+        let result = sudo(&["visudo", "-cf", &tmp_s])
+            .map_err(|e| format!("o visudo recusou a regra: {e}"))
+            .and_then(|_| {
+                sudo(&["install", "-m", "0440", "-o", "root", "-g", "root", &tmp_s, &file.display().to_string()])
+            });
+        let _ = std::fs::remove_file(&tmp);
+        result?;
+        Ok(format!("Pronto: o {} instala sem pedir senha.", pm.as_str()))
+    }
+
     pub fn lock_path(&self) -> PathBuf {
         self.state_dir.join("lock.toml")
     }
@@ -347,8 +401,10 @@ impl Services {
     }
 
     pub fn modules_needing_root(&self, settings: &Settings, lock: &Lockfile) -> Result<Vec<String>, String> {
-        sync::modules_needing_root(&self.manifests, settings, &self.env_for(settings), lock)
-            .map_err(|e| e.to_string())
+        let list = sync::modules_needing_root(&self.manifests, settings, &self.env_for(settings), lock)
+            .map_err(|e| e.to_string())?;
+        // Com o sudo lembrado não há senha a pedir.
+        Ok(if !list.is_empty() && self.sudo_saved() { Vec::new() } else { list })
     }
 
     /// Roda o sync numa thread. O root já deve ter sido obtido antes (`sudo -v`);

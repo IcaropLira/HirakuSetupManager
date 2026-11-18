@@ -1,0 +1,27 @@
+schema = 1
+id = "tealdeer"
+name = "tldr (tealdeer)"
+description = "Exemplos curtos de qualquer comando: tldr tar, tldr git commit"
+platforms = ["linux", "macos"]
+homepage = "https://github.com/tealdeer-rs/tealdeer"
+discover = ["shell"]
+
+[[install]]
+when = { os = "linux", root = true }
+method = "pkg"
+names = { dnf = "tealdeer", apt = "tealdeer", pacman = "tealdeer", zypper = "tealdeer" }
+provides = ["tldr"]
+
+[[install]]
+when = { os = "macos" }
+method = "pkg"
+names = { brew = "tealdeer" }
+provides = ["tldr"]
+
+# Baixa as páginas na primeira vez (sem isso o tldr avisa que não tem cache).
+[[hook]]
+name = "update-cache"
+script = "hooks/update-cache.sh"
+on = "once"
+needs = ["tldr"]
+optional = true

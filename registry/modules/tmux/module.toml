@@ -45,6 +45,13 @@ src = "files/tmux.conf"
 dest = { unix = "~/.tmux.conf" }
 template = true
 
+# Baixa os plugins ligados na aba Descobrir (antes do reload, para já carregarem).
+[[hook]]
+name = "plugins"
+script = "hooks/plugins.sh"
+needs = ["git"]
+optional = true
+
 # Recarrega o tmux aberto quando o tmux.conf muda (opções trocadas no app).
 [[hook]]
 name = "reload-config"
@@ -206,3 +213,38 @@ default = ""
 label = "Atalhos extras"
 section = "Atalhos"
 description = "Comandos do tmux, um por linha. Ex.: bind -n M-z resize-pane -Z  ·  unbind q"
+
+# ---------------------------------------------------------------- descobrir
+# Começam desligados. O hook "plugins" baixa em ~/.config/tmux/plugins.
+
+[options.plugin_resurrect]
+type = "bool"
+default = false
+label = "Salvar e restaurar sessões (resurrect)"
+section = "Descobrir"
+description = "Prefixo + Ctrl+S salva janelas, painéis e pastas; prefixo + Ctrl+R traz tudo de volta depois de reiniciar o PC."
+link = "https://github.com/tmux-plugins/tmux-resurrect"
+
+[options.plugin_continuum]
+type = "bool"
+default = false
+label = "Salvar sozinho e reabrir como estava (continuum)"
+section = "Descobrir"
+description = "Salva a cada 15 minutos e restaura ao abrir o tmux. Liga o resurrect junto. Precisa da barra de status ligada."
+link = "https://github.com/tmux-plugins/tmux-continuum"
+
+[options.plugin_navigator]
+type = "bool"
+default = false
+label = "Navegar com o Neovim/Vim (Ctrl+h/j/k/l)"
+section = "Descobrir"
+description = "Ctrl+h/j/k/l passa de um painel do tmux para uma janela do editor sem pensar. Ligue também no Descobrir do Neovim/Vim. Prefixo + Ctrl+L limpa a tela."
+link = "https://github.com/christoomey/vim-tmux-navigator"
+
+[options.plugin_fzf_url]
+type = "bool"
+default = false
+label = "Abrir links da tela (fzf-url)"
+section = "Descobrir"
+description = "Prefixo + u lista os links visíveis no painel; escolha um e ele abre no navegador. Precisa do fzf."
+link = "https://github.com/wfxr/tmux-fzf-url"

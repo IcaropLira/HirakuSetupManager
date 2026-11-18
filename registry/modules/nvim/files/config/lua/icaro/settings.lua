@@ -53,16 +53,21 @@ local function getopt(it)
 end
 local function toggle_rows()
   local t = require("icaro.toggles")
+  -- mostra a tecla atual de cada recurso (configurável no app → Teclas de função)
+  local function k(label, id)
+    local key = require("icaro.actions").key(id)
+    return key and (label .. "  [" .. key:gsub("^<(.*)>$", "%1") .. "]") or label
+  end
   return {
-    {"Autocomplete da linguagem atual", function() t.autocomplete() end, function() return t.completion_enabled() end},
-    {"Dicas inline / inlay hints", function() t.inlay() end, function() return t.s.inlay end},
-    {"Fechar pares e aspas automaticamente", function() t.autopairs() end, function() return t.s.pairs end},
-    {"Assinatura e documentação automática", function() t.hints() end, function() return t.s.hints end},
-    {"Diagnósticos de erros e avisos", function() t.diagnostics() end, function() return t.s.diag end},
-    {"Destaque de parênteses correspondentes", function() t.matchparen() end, function() return t.s.matchparen end},
-    {"Header / winbar", function() t.header() end, function() return t.s.header end},
+    {k("Autocomplete da linguagem atual", "autocomplete"), function() t.autocomplete() end, function() return t.completion_enabled() end},
+    {k("Dicas inline / inlay hints", "inlay"), function() t.inlay() end, function() return t.s.inlay end},
+    {k("Fechar pares e aspas automaticamente", "autopairs"), function() t.autopairs() end, function() return t.s.pairs end},
+    {k("Assinatura e documentação automática", "hints"), function() t.hints() end, function() return t.s.hints end},
+    {k("Diagnósticos de erros e avisos", "diagnostics"), function() t.diagnostics() end, function() return t.s.diag end},
+    {k("Destaque de parênteses correspondentes", "matchparen"), function() t.matchparen() end, function() return t.s.matchparen end},
+    {k("Header / winbar", "header"), function() t.header() end, function() return t.s.header end},
     {"Mensagens de progresso LSP", function() t.lsp_progress() end, function() return vim.g.icaro_lsp_progress end},
-    {"Modo silencioso (pausa distrações)", function() t.quiet() end, function() return vim.g.icaro_quiet end},
+    {k("Modo silencioso (pausa distrações)", "quiet"), function() t.quiet() end, function() return vim.g.icaro_quiet end},
     {"Mostrar/ocultar árvore de arquivos (Neo-tree)", function() vim.g.icaro_feature_neo_tree = not (vim.g.icaro_feature_neo_tree ~= false); if vim.g.icaro_feature_neo_tree then vim.cmd("Neotree show") else pcall(vim.cmd,"Neotree close") end; state.set("feature_neo_tree",vim.g.icaro_feature_neo_tree) end, function() return vim.g.icaro_feature_neo_tree ~= false end},
     {"Ícones Nerd Font (preferência)", function() local v=not state.get("nerd_font",true); state.set("nerd_font",v); notify("Preferência de ícones salva; reinicie para aplicar em todos os plugins.") end, function() return state.get("nerd_font",true) end},
   }
@@ -206,8 +211,7 @@ function M.setup()
   vim.g.icaro_feature_neo_tree=state.get("feature_neo_tree",true)
   vim.api.nvim_create_user_command("ConfigMenu",M.open,{desc="Abrir/fechar central de configurações RF"})
   vim.api.nvim_create_user_command("ConfigReset",function() for _,it in ipairs(option_items()) do state.set("option_"..it.key,it.default); vim.opt[it.opt]=it.default end; notify("Preferências restauradas.") end,{desc="Restaurar preferências do editor"})
-  vim.keymap.set("n","<S-F12>",M.open,{desc="Abrir/fechar central de configurações RF",silent=true})
-  vim.keymap.set("n","<F24>",M.open,{desc="Abrir/fechar central de configurações RF (compatibilidade)",silent=true})
+  -- A tecla (Shift+F12 por padrão) vem de icaro.actions (configurável no app).
   -- Atalho secundário útil, sem depender do leader.
   vim.keymap.set("n","<leader>uc",M.open,{desc="Central de configurações RF",silent=true})
 end
