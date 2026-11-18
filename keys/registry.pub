@@ -1,3 +1,3 @@
 # Chave pública minisign do registry (gerada por scripts/setup-signing.sh).
 # O app só aceita registry remoto assinado por uma das chaves "RW..." deste arquivo.
-# Enquanto não houver chave aqui, o app usa só o registry embutido nele.
+RWTegJt8CAKEk05K7RYah/UuUYknEaVirr8MUmgbJRSyBjEAqqwWE+Qn
