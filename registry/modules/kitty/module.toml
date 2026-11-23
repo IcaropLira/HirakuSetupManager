@@ -46,9 +46,9 @@ provides = ["kitty"]
 when = { os = "linux", arch = "x86_64" }
 provides = ["kitty"]
 method = "release"
-version = "0.50.0"
+version = "0.51.1"
 url = "https://github.com/kovidgoyal/kitty/releases/download/v{version}/kitty-{version}-x86_64.txz"
-sha256 = "f04b11775574d6aabfb529b7e734cc0a7d7d12c7df9fb8ec1843e45420e514ee"
+sha256 = "d309be978f017dbdcccae175d281092fefe7c8bc64478fa620581604ab0b53c0"
 dest = "~/.local/kitty.app"
 bins = [{ src = "bin/kitty", link = "~/.local/bin/kitty" }, { src = "bin/kitten", link = "~/.local/bin/kitten" }]
 bump = { github = "kovidgoyal/kitty" }
@@ -57,9 +57,9 @@ bump = { github = "kovidgoyal/kitty" }
 when = { os = "linux", arch = "aarch64" }
 provides = ["kitty"]
 method = "release"
-version = "0.50.0"
+version = "0.51.1"
 url = "https://github.com/kovidgoyal/kitty/releases/download/v{version}/kitty-{version}-arm64.txz"
-sha256 = "3eb3257081ece4650dd112b2cf1bdbc0d1952d1a3f3934f22949e666e18451ee"
+sha256 = "9c3e8e38a5068c511e3a94e065cbd2c5af4922d76d2d205d5084018e8572648d"
 dest = "~/.local/kitty.app"
 bins = [{ src = "bin/kitty", link = "~/.local/bin/kitty" }, { src = "bin/kitten", link = "~/.local/bin/kitten" }]
 bump = { github = "kovidgoyal/kitty" }

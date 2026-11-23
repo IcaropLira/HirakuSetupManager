@@ -10,9 +10,9 @@ discover = ["shell", "nvim"]
 when = { os = "linux", arch = "x86_64" }
 provides = ["rg"]
 method = "release"
-version = "15.2.0"
+version = "16.0.0"
 url = "https://github.com/BurntSushi/ripgrep/releases/download/{version}/ripgrep-{version}-x86_64-unknown-linux-musl.tar.gz"
-sha256 = "33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c"
+sha256 = "54268ab4643c00a290a29b0086066d64b3f56236dd805ec64629a86f9bd29fd0"
 dest = "~/.local/share/hiraku/ripgrep"
 strip_components = 1
 bins = [{ src = "rg", link = "~/.local/bin/rg" }]
@@ -22,9 +22,9 @@ bump = { github = "BurntSushi/ripgrep", tag_prefix = "" }
 when = { os = "linux", arch = "aarch64" }
 provides = ["rg"]
 method = "release"
-version = "15.2.0"
+version = "16.0.0"
 url = "https://github.com/BurntSushi/ripgrep/releases/download/{version}/ripgrep-{version}-aarch64-unknown-linux-gnu.tar.gz"
-sha256 = "a740b91c82eaf9914cfedd353572f2791cbe0162c84101ee0951058f4dcbc90d"
+sha256 = "0b0bddcfaf42be1f3c56bf929d70defd1a2d96f2577aecbd7029a3734ddb4740"
 dest = "~/.local/share/hiraku/ripgrep"
 strip_components = 1
 bins = [{ src = "rg", link = "~/.local/bin/rg" }]
