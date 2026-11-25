@@ -58,7 +58,7 @@ fn file_item(h: FileHealth, dest: &Path) -> Option<HealthItem> {
         FileHealth::NotManaged => ("error", "Arquivo antigo no lugar", "Já existia um arquivo seu (de uma instalação antiga?) e o do hiraku nunca foi gravado. Enquanto ele estiver aí, nada do app vale."),
         FileHealth::Pending => ("warn", "Versão nova esperando você", "Há uma versão nova deste arquivo na aba Conflitos esperando você escolher."),
         FileHealth::BlockMissing => ("error", "Bloco do hiraku ausente", "O trecho que o hiraku coloca neste arquivo não está lá (ou está diferente)."),
-        FileHealth::LinkWrong => ("error", "Link quebrado", "Deveria ser um link para a pasta do hiraku e não é."),
+        FileHealth::LinkWrong => ("error", "Link quebrado no caminho", "Uma pasta deste caminho é um link que não aponta para nada (sobra do install.sh antigo, que ligava as pastas a um clone do repositório) ou não é o link esperado. O Reparar (ou o próximo sync) troca por uma pasta de verdade."),
     };
     let mut it = item(level, title, detail);
     it.path = Some(dest.display().to_string());

@@ -274,13 +274,46 @@ fn read_if_exists(path: &Path) -> Result<Option<Vec<u8>>> {
     }
 }
 
+/// Cria a pasta `dir` (como `create_dir_all`), consertando o que as instalações
+/// antigas deixaram no caminho: um link simbólico quebrado (ex.: `~/.config/nvim`
+/// apontando para um clone do repositório que foi apagado) é removido, e um arquivo
+/// (ou link para arquivo) onde deveria haver pasta é renomeado para `*.hiraku-old-<ts>`.
+/// Links que apontam para pastas existentes são respeitados (stow e afins).
+pub(crate) fn prepare_dir(dir: &Path) -> Result<()> {
+    if dir.is_dir() {
+        return Ok(());
+    }
+    let mut cur = PathBuf::new();
+    for comp in dir.components() {
+        cur.push(comp);
+        let Ok(meta) = fs::symlink_metadata(&cur) else { break };
+        let target_is_dir = fs::metadata(&cur).map(|m| m.is_dir()).ok();
+        match target_is_dir {
+            Some(true) => continue,
+            // link quebrado: não há nada atrás dele
+            None if meta.file_type().is_symlink() => {
+                fs::remove_file(&cur).map_err(io_err(&cur))?;
+                break;
+            }
+            // arquivo (ou link para arquivo) no lugar de uma pasta
+            _ => {
+                let mut name = cur.file_name().unwrap_or_default().to_os_string();
+                name.push(format!(".hiraku-old-{}", now_secs()));
+                fs::rename(&cur, cur.with_file_name(name)).map_err(io_err(&cur))?;
+                break;
+            }
+        }
+    }
+    fs::create_dir_all(dir).map_err(io_err(dir))
+}
+
 /// Grava via arquivo temporário + rename. Se `dest` for um link simbólico, escreve
 /// no alvo (não quebra quem gerencia dotfiles com stow). Preserva permissões do
 /// destino existente ou, se for novo, copia as da origem.
 fn write_atomic(dest: &Path, bytes: &[u8], perms_from: &Path) -> Result<()> {
     let real = fs::canonicalize(dest).unwrap_or_else(|_| dest.to_path_buf());
     if let Some(parent) = real.parent() {
-        fs::create_dir_all(parent).map_err(io_err(parent))?;
+        prepare_dir(parent)?;
     }
     let mut tmp_name = real.file_name().unwrap_or_default().to_os_string();
     tmp_name.push(".hiraku-tmp");
@@ -487,7 +520,7 @@ fn link_entry(
         }
     }
     if let Some(parent) = dest_root.parent() {
-        fs::create_dir_all(parent).map_err(io_err(parent))?;
+        prepare_dir(parent)?;
     }
     crate::release::make_link(&target, dest_root).map_err(io_err(dest_root))?;
     Ok(Outcome::Linked)
@@ -564,7 +597,7 @@ fn validate_block_result(check: &[String], dest: &Path, new_text: &str, original
     name.push(".hiraku-check");
     let tmp = dest.with_file_name(name);
     if let Some(parent) = tmp.parent() {
-        fs::create_dir_all(parent).map_err(io_err(parent))?;
+        prepare_dir(parent)?;
     }
     fs::write(&tmp, new_text).map_err(io_err(&tmp))?;
     let result = match run_check(check, &tmp) {
@@ -803,6 +836,16 @@ pub struct FileCheck {
     pub health: FileHealth,
 }
 
+/// Alguma pasta do caminho é um link quebrado ou um arquivo (sobra de instalação
+/// antiga): o sync conserta com `prepare_dir`, mas a verificação avisa.
+fn blocked_by_legacy_path(dest: &Path) -> bool {
+    dest.ancestors().skip(1).any(|a| {
+        fs::symlink_metadata(a).map_or(false, |m| {
+            (m.file_type().is_symlink() && fs::metadata(a).is_err()) || (!m.file_type().is_symlink() && !m.is_dir())
+        })
+    })
+}
+
 /// Confere, sem gravar nada, cada arquivo que os `[[config]]` do módulo gerariam.
 /// Arquivos `seed` só precisam existir.
 pub fn check_module_configs(
@@ -867,6 +910,7 @@ pub fn check_module_configs(
                 }
                 let known = state.files.get(&dest.display().to_string());
                 match ours {
+                    None if blocked_by_legacy_path(&dest) => FileHealth::LinkWrong,
                     None => FileHealth::Missing,
                     Some(o) if o == theirs => FileHealth::Ok,
                     Some(o) => match known {
@@ -953,6 +997,40 @@ pub fn resolve_conflict(
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
+    #[test]
+    fn broken_legacy_symlink_in_the_path_is_replaced_by_a_real_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        // ~/.config/nvim -> clone apagado (como o install.sh antigo deixava)
+        let nvim = dir.path().join(".config/nvim");
+        fs::create_dir_all(nvim.parent().unwrap()).unwrap();
+        std::os::unix::fs::symlink(dir.path().join("clone-apagado/nvim"), &nvim).unwrap();
+        let dest = nvim.join("theme/icaro-theme/colors/x.vim");
+        super::write_atomic(&dest, b"ok", &dest).unwrap();
+        assert_eq!(fs::read_to_string(&dest).unwrap(), "ok");
+        assert!(!fs::symlink_metadata(&nvim).unwrap().file_type().is_symlink());
+        assert!(!dir.path().join("clone-apagado").exists(), "não recria o alvo do link quebrado");
+
+        // um arquivo onde deveria haver pasta vai para *.hiraku-old-*
+        let shell = dir.path().join(".config/dotfiles-shell");
+        fs::write(&shell, "x").unwrap();
+        let dest = shell.join("shellrc.sh");
+        super::write_atomic(&dest, b"rc", &dest).unwrap();
+        assert_eq!(fs::read_to_string(&dest).unwrap(), "rc");
+        let olds = fs::read_dir(dir.path().join(".config")).unwrap()
+            .filter(|e| e.as_ref().unwrap().file_name().to_string_lossy().starts_with("dotfiles-shell.hiraku-old-"))
+            .count();
+        assert_eq!(olds, 1);
+
+        // link válido para pasta continua sendo respeitado
+        let real = dir.path().join("dotfiles/kitty");
+        fs::create_dir_all(&real).unwrap();
+        let kitty = dir.path().join(".config/kitty");
+        std::os::unix::fs::symlink(&real, &kitty).unwrap();
+        super::write_atomic(&kitty.join("a.conf"), b"k", &kitty).unwrap();
+        assert!(real.join("a.conf").exists());
+    }
+
     #[test]
     fn template_json_filter_escapes_strings() {
         let mut vars = BTreeMap::new();
