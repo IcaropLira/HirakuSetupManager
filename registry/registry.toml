@@ -1,4 +1,4 @@
 # Metadados do registry. `version` só pode crescer: o app recusa registries
 # remotos com versão menor que a que já tem (protege contra replay de releases antigos).
 schema = 1
-version = 6
+version = 7
