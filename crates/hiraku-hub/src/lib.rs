@@ -9,6 +9,7 @@
 //! Quem desenha é a TUI (`hiraku-tui`) ou o app desktop (`hiraku-gui`).
 
 pub mod catalog;
+pub mod health;
 pub mod model;
 pub mod presets;
 pub mod services;

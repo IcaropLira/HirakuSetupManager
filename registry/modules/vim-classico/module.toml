@@ -1,0 +1,61 @@
+schema = 1
+id = "vim-classico"
+name = "Vim clássico (old school)"
+description = "O Vim do Ícaro de antes do Neovim e do app, instalado do jeito que era: escolha a versão na linha do tempo. Não roda junto com o Vim moderno (habilitar um desliga o outro)"
+platforms = ["linux"]
+homepage = "https://github.com/IcaropLira/HirakuSetupManager/tree/39bf06d436aa86ec76d2a70f4d547609c756a459/vim"
+# Escreve o mesmo ~/.vimrc e ~/.vim/config que o Vim moderno: um ou outro.
+conflicts = ["vim"]
+
+# A versão escolhida (o hook confere este arquivo e reinstala quando ela muda).
+[[config]]
+src = "files/versao"
+dest = "~/.local/share/hiraku/vim-classico/versao"
+template = true
+mode = "copy"
+backup = false
+
+# Baixa aquele commit do repositório e roda o instalador original dele (sem perguntas,
+# no modo "só no meu usuário"). O ~/.vimrc anterior vai para ~/.vimrc.backup.<data>.
+[[hook]]
+name = "instalar-versao"
+script = "hooks/install.sh"
+on = "always"
+needs = ["git", "vim", "tar", "bash"]
+
+[options.versao]
+type = "choice"
+default = "39bf06d436aa86ec76d2a70f4d547609c756a459"
+label = "Versão"
+section = "Linha do tempo"
+description = "Cada ponto é o Vim como estava naquele dia no repositório. Trocar aqui reinstala na hora (o ~/.vimrc atual vai para um backup)."
+values = [
+  "39bf06d436aa86ec76d2a70f4d547609c756a459",
+  "d37cb96d22721140360ce93f67d6d791394fe808",
+  "3487c5b245f811c9bf78aacded4fdecba6267cf1",
+  "e67760bd60da80a23724fa223452394e87486826",
+  "5eec9ae1dd7f06be30601682d9af33bb312b2b87",
+  "001024a8db1eef65ef2d5f0db14d09f0d4286b4e",
+  "e13ab880c4f276507ce6e8bea347544369ff0006",
+  "91b2f765b62e1ce78b7ac732f758ca3f7955de1a",
+]
+
+[options.versao.labels]
+"39bf06d436aa86ec76d2a70f4d547609c756a459" = "07/10/2026 · v2.0 — Terminal dinâmico (o último antes do Neovim)"
+"d37cb96d22721140360ce93f67d6d791394fe808" = "30/09/2026 · Atalhos corrigidos"
+"3487c5b245f811c9bf78aacded4fdecba6267cf1" = "29/09/2026 · Release \"vim\": Vim, tmux e terminal"
+"e67760bd60da80a23724fa223452394e87486826" = "26/09/2026 · Python e terminal com rolagem"
+"5eec9ae1dd7f06be30601682d9af33bb312b2b87" = "24/09/2026 · Powerlines e temas novos"
+"001024a8db1eef65ef2d5f0db14d09f0d4286b4e" = "20/09/2026 · Terminal e pop-up de atalhos"
+"e13ab880c4f276507ce6e8bea347544369ff0006" = "17/09/2026 · Autocomplete em Java e C++"
+"91b2f765b62e1ce78b7ac732f758ca3f7955de1a" = "09/09/2026 · A primeira configuração completa"
+
+[options.versao.details]
+"39bf06d436aa86ec76d2a70f4d547609c756a459" = "A versão mais completa do Vim puro: temas com nome, airline, NERDTree com ícones, coc (C++, Java, Python), F5–F8 para compilar/executar/testar, terminal que fecha no Enter, folha de atalhos no F12, modo silencioso e header."
+"d37cb96d22721140360ce93f67d6d791394fe808" = "Teclas de função funcionando em mais terminais (códigos alternativos de F1–F12) e cores do terminal ajustadas."
+"3487c5b245f811c9bf78aacded4fdecba6267cf1" = "A release que juntou Vim, tmux e terminal (kitty, starship) no mesmo repositório; comando catcode no terminal. Aqui só o Vim é instalado."
+"e67760bd60da80a23724fa223452394e87486826" = "Autocomplete de Python (coc-pyright), F5–F8 também em Python e terminal com rolagem."
+"5eec9ae1dd7f06be30601682d9af33bb312b2b87" = "Statusline estilo powerline e a leva de temas novos (burgundy, espresso, hotdog...)."
+"001024a8db1eef65ef2d5f0db14d09f0d4286b4e" = "Os temas com nome de gente e de piada interna, terminal embutido e o primeiro pop-up de atalhos."
+"e13ab880c4f276507ce6e8bea347544369ff0006" = "Entra o coc.nvim com autocomplete de Java e C++, templates de Java e o tema icaro preto e vermelho."
+"91b2f765b62e1ce78b7ac732f758ca3f7955de1a" = "O começo: C++ com template, compilar e executar, explorer e busca. Sem plugins de autocomplete."

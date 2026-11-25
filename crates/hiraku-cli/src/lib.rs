@@ -45,7 +45,7 @@ USO:
   hiraku pin <módulo> <versão>        fixa a versão do binário (ex.: 0.10.*); unpin remove
   hiraku mode user|system|auto        define o modo de instalação padrão
   hiraku settings                     mostra as preferências
-  hiraku sync [--unattended] [--no-registry-update] [--first-apply backup|pending]
+  hiraku sync [--unattended] [--no-registry-update] [--first-apply backup|pending] [--repair]
                                       atualiza registry, instala/atualiza e configura tudo
   hiraku report                       mostra o relatório do último sync
   hiraku schedule install [--every 6h]|remove|status
@@ -114,6 +114,7 @@ struct Flags {
     set: BTreeMap<String, String>,
     first_apply: Option<String>,
     unattended: bool,
+    repair: bool,
     check: bool,
     no_registry_update: bool,
     every: Option<String>,
@@ -141,6 +142,7 @@ fn parse_flags(args: &[String]) -> Result<Flags, String> {
                 flags.first_apply = Some(mode.clone());
             }
             "--unattended" => flags.unattended = true,
+            "--repair" => flags.repair = true,
             "--check" => flags.check = true,
             "--no-registry-update" => flags.no_registry_update = true,
             "--every" => {
@@ -784,6 +786,7 @@ fn cmd_sync(args: &[String]) -> Result<(), String> {
             },
             notes,
             unattended,
+            repair: flags.repair,
         },
         elevator.as_mut(),
         &mut sink,

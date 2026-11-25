@@ -48,7 +48,7 @@ const GLYPH = { kitty: "K", tmux: "T", vim: "V", nvim: "N", node: "⬢", jdk: "J
 
 const applogo = () => '<svg class="applogo" viewBox="0 0 100 100" aria-hidden="true"><path fill="url(#lgA)" fill-rule="evenodd" d="M50 3C74 3 93 24 93 50S74 97 50 97 7 76 7 50 26 3 50 3ZM50 10C64 10 73 28 73 50S64 90 50 90 27 72 27 50 36 10 50 10Z"/><path fill="none" style="stroke:color-mix(in srgb,var(--acc) 70%,#fff)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" d="M40 38 50 48 40 58"/><path style="stroke:color-mix(in srgb,var(--acc) 70%,#fff)" stroke-width="5.5" stroke-linecap="round" d="M53 59H62"/></svg>';
 // Logos do projeto IcaroPintoLira (public/assets): uma por programa configurado.
-const LOGO = { kitty: "terminal", shell: "terminal", tmux: "tmux", nvim: "neovim", vim: "vim" };
+const LOGO = { kitty: "terminal", shell: "terminal", tmux: "tmux", nvim: "neovim", vim: "vim", "vim-classico": "vim" };
 const tile = (m, cls = "") => LOGO[m.id]
   ? `<span class="pj-tile logo ${cls}"><img src="logos/${LOGO[m.id]}.svg" alt="" draggable="false"></span>`
   : `<span class="pj-tile ${cls}">${esc(GLYPH[m.id] || m.name[0].toUpperCase())}</span>`;
@@ -152,6 +152,7 @@ function viewHome() {
     <h2>Seu setup</h2>
     <p class="mut">${en} módulo(s) mantidos em dia · modo ${modeTxt} · registry v${INFO.registry_version} (${esc(INFO.registry_source)})</p>
     <div class="hx-cta"><button class="hx-btn" data-act="sync" ${SYNC ? "disabled" : ""}>${SYNC ? "Sincronizando…" : "Sincronizar agora"}</button>
+    <button class="hx-btn ghost" data-act="health">Verificar integridade</button>
     <button class="hx-btn ghost" data-v="custom">Personalizar</button><button class="hx-btn ghost" data-act="wizard">Refazer instalação…</button></div></div></section>`;
   const orbs = `<div class="hx-orbs">
     <button class="hx-orb" data-v="modules">${ring(en ? inst / en : 0, `${inst}/${en}`)}<small>instalados</small></button>
@@ -266,6 +267,14 @@ function optionRow(spec, settings) {
         const search = vals.length > 12 ? `<input class="txt th-search" placeholder="Filtrar ${vals.length} opções…" data-filter-grid="${id}">` : "";
         const code = spec.key !== "palette";
         return `<div class="st-row col">${lbl}${search}<div class="th-grid ${code ? "code" : ""}" data-pal="${id}">${vals.map(x => `<button class="th-card ${x === v ? "on" : ""}" data-set="${id}" data-val="${esc(x)}" data-name="${esc((valueLabel(spec, x) + " " + x).toLowerCase())}"><div class="th-prev" data-pv="${esc(x)}"></div><span>${esc(valueLabel(spec, x))}</span></button>`).join("")}</div></div>`;
+      }
+      // Valores com texto longo (details) viram uma linha do tempo, do mais novo ao mais antigo.
+      if (spec.details && Object.keys(spec.details).length) {
+        return `<div class="st-row col">${lbl}<ol class="tl">${vals.map((x, i) => {
+          const [when, ...rest] = valueLabel(spec, x).split(" · ");
+          const title = rest.join(" · ") || when;
+          return `<li class="${x === v ? "on" : ""}"><button data-set="${id}" data-val="${esc(x)}"><span class="tl-dot"></span><span class="tl-when">${esc(rest.length ? when : "")}${i === 0 ? ' <em>mais nova</em>' : ""}${x === v ? ' <em class="cur">escolhida</em>' : ""}</span><b>${esc(title)}</b><small>${esc(spec.details[x] || "")}</small><code>${esc(x.slice(0, 7))}</code></button></li>`;
+        }).join("")}</ol></div>`;
       }
       const long = vals.some(x => valueLabel(spec, x).length > 22);
       if (vals.length > 6) {
@@ -657,6 +666,7 @@ async function action(a) {
       catch (e) { fail(e); }
       return reload();
     case "appupdate": return checkAppUpdate(true);
+    case "health": return healthOpen();
     case "settings": return settingsOpen();
     case "about": return settingsOpen("about");
     case "keys": return settingsOpen("keys");
@@ -681,9 +691,9 @@ async function runSync(only, opts = {}) {
     const ok = await sudoDialog(roots);
     if (!ok) return;
   }
-  SYNC = { only, lines: [], progress: null, quiet: !!opts.quiet };
+  SYNC = { only, lines: [], progress: null, quiet: !!opts.quiet, repair: !!opts.repair };
   dock();
-  try { await call("start_sync", { only }); }
+  try { await call("start_sync", { only, repair: !!opts.repair }); }
   catch (e) { SYNC = null; dock(); return fail(e); }
   $("#btn-sync").classList.add("spin");
   if (VIEW === "home" || VIEW === "updates") render();
@@ -695,7 +705,7 @@ function dock() {
   d.className = "glass";
   const p = SYNC.progress;
   const pct = p && p.total ? Math.round(100 * p.done / p.total) : null;
-  d.innerHTML = `<header><span class="hx-dot">⟳</span><b>${SYNC.only ? `Aplicando ${esc(SYNC.only)}…` : "Sincronizando…"}</b><button class="x" id="dock-x" title="Esconder">–</button></header>
+  d.innerHTML = `<header><span class="hx-dot">⟳</span><b>${SYNC.repair ? "Reparando…" : SYNC.only ? `Aplicando ${esc(SYNC.only)}…` : "Sincronizando…"}</b><button class="x" id="dock-x" title="Esconder">–</button></header>
     <div class="pbar ${pct === null ? "ind" : ""}"><i style="width:${pct ?? 0}%"></i></div>
     <div class="log">${SYNC.lines.slice(-60).map(l => `<div class="${l.kind === "conflict" ? "c" : l.kind === "skipped" ? "s" : ""}">${esc(l.line)}</div>`).join("")}</div>`;
   const log = $(".log", d); log.scrollTop = log.scrollHeight;
@@ -716,7 +726,8 @@ on("sync://done", r => {
   if (r.error) fail("Sync falhou: " + r.error);
   else if (r.report) {
     const f = r.report.modules.filter(m => m.status === "failed").length, c = r.report.modules.reduce((n, m) => n + m.configs.filter(x => x.outcome === "KeptPending" || /Pending|Conflict/.test(x.outcome)).length, 0);
-    if (was && was.only && !f) toast(`${was.only}: aplicado ✓`);
+    if (was && was.repair) { toast(f ? "Reparo terminou com falhas: veja a verificação." : "Reparado ✓ Os arquivos estão como o app manda.", f ? "err" : ""); setTimeout(() => healthOpen(), 400); }
+    else if (was && was.only && !f) toast(`${was.only}: aplicado ✓`);
     else toast(`Sync concluído: ${r.report.modules.length} módulo(s)${f ? `, ${f} com falha` : ""}${c ? `, ${c} conflito(s)` : ""}.`, f ? "err" : "");
   }
   reload();
@@ -732,6 +743,36 @@ function modal(html, cls = "") {
   return o.firstElementChild;
 }
 function closeModal() { const o = $("#overlay"); o.hidden = true; o.innerHTML = ""; }
+// ------------------------------------------------------------------ integridade
+// Confere se o que o app deveria ter aplicado está no disco e se o vim/nvim/PATH
+// são os certos. "Reparar" = sync que grava as configs exatamente como esperadas.
+async function healthOpen() {
+  const p = modal(`<div class="st-head"><h2>Verificar integridade</h2><button class="x" data-x>✕</button></div>
+    <div class="st-pad hl"><p class="mut">Conferindo arquivos, programas e o PATH…</p><div class="pbar ind"><i></i></div></div>`, "wide");
+  $$("[data-x]", p).forEach(b => b.onclick = closeModal);
+  let r;
+  try { r = await call("health"); } catch (e) { closeModal(); return fail(e); }
+  const icon = l => l === "ok" ? "✓" : l === "warn" ? "!" : "✕";
+  const row = it => `<div class="hl-it ${it.level}"><span class="hl-ic">${icon(it.level)}</span><div><b>${esc(it.title)}</b>${it.path ? `<code>${esc(it.path)}</code>` : ""}<small>${esc(it.detail)}</small></div></div>`;
+  const mods = r.modules.map(m => {
+    const bad = m.items.filter(i => i.level !== "ok"), good = m.items.filter(i => i.level === "ok");
+    const st = bad.some(i => i.level === "error") ? "error" : bad.length ? "warn" : "ok";
+    return `<section class="hl-mod ${st}"><header>${tile(modInfo(m.id) || { id: m.id, name: m.name }, "sm")}<b>${esc(m.name)}</b><span class="mut">${m.ok_files} arquivo(s) certo(s)${bad.length ? ` · ${bad.length} problema(s)` : ""}</span><span class="hl-ic ${st}">${icon(st)}</span></header>
+      ${bad.map(row).join("")}${good.map(row).join("")}</section>`;
+  }).join("");
+  const sum = r.problems === 0 ? `<div class="hl-sum ok">✓ Tudo certo: os arquivos estão exatamente como o app manda.</div>`
+    : `<div class="hl-sum">${r.problems} problema(s) encontrado(s)${r.fixable ? `; ${r.fixable} o Reparar resolve` : ""}.</div>`;
+  p.innerHTML = `<div class="st-head"><h2>Verificar integridade</h2><button class="x" data-x>✕</button></div>
+    <div class="st-pad hl">${sum}
+      ${r.general.length ? `<section class="hl-mod"><header><b>Geral</b></header>${r.general.map(row).join("")}</section>` : ""}
+      ${mods}
+      <p class="mut small">Reparar grava de novo todos os arquivos do app exatamente como as suas opções mandam e roda os recarregamentos. O que estiver diferente (edições à mão, arquivos antigos, conflitos) vai antes para a pasta de backups do hiraku (<code>~/.local/share/hiraku/backups</code> no Linux).</p>
+      <div class="hx-cta" style="justify-content:flex-end"><button class="hx-btn ghost" id="hl-again">Verificar de novo</button><button class="hx-btn" id="hl-fix" ${r.fixable ? "" : "disabled"}>Reparar${r.fixable ? ` (${r.fixable})` : ""}</button></div></div>`;
+  $$("[data-x]", p).forEach(b => b.onclick = closeModal);
+  $("#hl-again").onclick = () => healthOpen();
+  $("#hl-fix").onclick = () => { closeModal(); runSync(null, { repair: true }); };
+}
+
 // "Lembrar o sudo": regra do sudoers que deixa só o install do dnf/apt/... sem senha.
 function sudoRow() {
   if (INFO.os !== "linux" || !INFO.pkg_needs_root || INFO.is_root) return "";
@@ -1029,11 +1070,11 @@ function wzRender() {
 
 // ------------------------------------------------------------------ menus e atalhos
 const MENUS = {
-  file: [["Sincronizar tudo", "Ctrl+S", () => runSync(null)], ["Buscar registry novo", "", () => action("registry")], "-", ["Abrir pasta de configurações", "", () => action("opendir")], "-", ["Sair", "Ctrl+Q", () => T && T.process ? T.process.exit(0) : window.close()]],
+  file: [["Sincronizar tudo", "Ctrl+S", () => runSync(null)], ["Verificar integridade", "Ctrl+I", () => healthOpen()], ["Buscar registry novo", "", () => action("registry")], "-", ["Abrir pasta de configurações", "", () => action("opendir")], "-", ["Sair", "Ctrl+Q", () => T && T.process ? T.process.exit(0) : window.close()]],
   edit: [["Configurações…", "Ctrl+,", () => settingsOpen()]],
   view: [["Início", "Ctrl+1", () => go("home")], ["Módulos", "Ctrl+2", () => go("modules")], ["Personalizar", "Ctrl+3", () => go("custom")], ["Conflitos", "Ctrl+4", () => go("conflicts")], ["Atualizações", "Ctrl+5", () => go("updates")], "-", ["Alternar claro/escuro", "Ctrl+Shift+L", toggleDark]],
   go: [["Refazer instalação…", "", () => wzOpen(false)], ["Arquivo settings.toml", "", () => action("opendir")]],
-  help: [["Atalhos de teclado", "", () => settingsOpen("keys")], ["Verificar atualizações", "", () => checkAppUpdate(true)], "-", ["Sobre o Hiraku Setup", "", () => settingsOpen("about")]],
+  help: [["Verificar integridade (nada aplica?)", "Ctrl+I", () => healthOpen()], ["Atalhos de teclado", "", () => settingsOpen("keys")], ["Verificar atualizações", "", () => checkAppUpdate(true)], "-", ["Sobre o Hiraku Setup", "", () => settingsOpen("about")]],
 };
 function buildMenus() {
   $$(".menubar .nvm").forEach(m => {
@@ -1055,7 +1096,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") { if (!$("#overlay").hidden) closeModal(); else closeMenus(); return; }
   if (!(e.ctrlKey || e.metaKey)) return;
   const k = e.key.toLowerCase();
-  const map = { s: () => runSync(null), ",": () => settingsOpen(), 1: () => go("home"), 2: () => go("modules"), 3: () => go("custom"), 4: () => go("conflicts"), 5: () => go("updates") };
+  const map = { s: () => runSync(null), i: () => healthOpen(), ",": () => settingsOpen(), 1: () => go("home"), 2: () => go("modules"), 3: () => go("custom"), 4: () => go("conflicts"), 5: () => go("updates") };
   if (e.shiftKey && k === "l") { e.preventDefault(); return toggleDark(); }
   if (map[k] && !WZ) { e.preventDefault(); map[k](); }
 });
@@ -1130,11 +1171,21 @@ const MOCK = {
       case "resolve": return null;
       case "needs_root": return [];
       case "sudo_auth": return null;
+      case "health": return { problems: this.repaired ? 0 : 3, fixable: this.repaired ? 0 : 2,
+        general: [{ level: "ok", title: "Último sync", detail: "há 3 min, registry v6 (remote)", fixable: false }],
+        modules: [
+          { id: "vim", name: "Vim", ok_files: this.repaired ? 41 : 39, items: this.repaired ? [{ level: "ok", title: "Vim completo", detail: "/usr/bin/vim (via /home/icaro/.local/bin/vim)", fixable: false }] : [
+            { level: "error", title: "Arquivo antigo no lugar", detail: "Já existia um arquivo seu (de uma instalação antiga?) e o do hiraku nunca foi gravado. Enquanto ele estiver aí, nada do app vale.", path: "/home/icaro/.vimrc", fixable: true },
+            { level: "error", title: "Arquivo desatualizado", detail: "As opções mudaram no app, mas a versão nova não chegou a ser gravada (o último sync parou antes ou falhou).", path: "/home/icaro/.vim/hiraku.json", fixable: true },
+            { level: "error", title: "O último sync deu erro aqui", detail: "release coc.nvim: sha256 não confere", fixable: false },
+            { level: "ok", title: "Vim completo", detail: "/usr/bin/vim (via /home/icaro/.local/bin/vim)", fixable: false }] },
+          { id: "tmux", name: "tmux", ok_files: 3, items: [] }] };
       case "sudo_remember": this.sudoSaved = a.on; return a.on ? "Pronto: o dnf instala sem pedir senha." : "O sudo volta a pedir senha para instalar.";
       case "refresh_registry": return null;
       case "open_config_dir": return null;
       case "open_url": this.opened = a.url; return null;
       case "start_sync": {
+        if (a.repair) this.repaired = true;
         const mods = a.only ? [a.only] : s.modules;
         let i = 0;
         const tick = () => {

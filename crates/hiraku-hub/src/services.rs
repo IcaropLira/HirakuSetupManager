@@ -379,10 +379,30 @@ impl Services {
             false
         } else {
             settings.enable(id);
+            // Módulos que escrevem os mesmos arquivos (ex.: Vim clássico x Vim) não
+            // ficam ligados juntos: habilitar um desliga o outro.
+            for other in self.conflicting(id) {
+                settings.disable(&other);
+            }
             true
         };
         settings.save(&self.settings_file).map_err(|e| e.to_string())?;
         Ok(enabled)
+    }
+
+    /// Módulos em conflito com `id` (declarados em qualquer um dos dois lados).
+    pub fn conflicting(&self, id: &str) -> Vec<String> {
+        let mut out = Vec::new();
+        for (m, _) in &self.manifests {
+            if m.id == id {
+                out.extend(m.conflicts.iter().cloned());
+            } else if m.conflicts.iter().any(|c| c == id) {
+                out.push(m.id.clone());
+            }
+        }
+        out.sort();
+        out.dedup();
+        out
     }
 
     pub fn diff(&self, path: &str) -> Result<String, String> {
@@ -410,6 +430,15 @@ impl Services {
     /// Roda o sync numa thread. O root já deve ter sido obtido antes (`sudo -v`);
     /// aqui só se usa `sudo -n`, que nunca bloqueia pedindo senha.
     pub fn spawn_sync(&self, settings: Settings) -> Receiver<WorkerMsg> {
+        self.spawn_sync_with(settings, false)
+    }
+
+    /// Sync que repara: grava as configs exatamente como esperadas (com backup).
+    pub fn spawn_repair(&self, settings: Settings) -> Receiver<WorkerMsg> {
+        self.spawn_sync_with(settings, true)
+    }
+
+    fn spawn_sync_with(&self, settings: Settings, repair: bool) -> Receiver<WorkerMsg> {
         let (tx, rx) = mpsc::channel();
         let services = self.clone();
         let env = self.env_for(&settings);
@@ -429,6 +458,7 @@ impl Services {
                     registry_source: services.registry_source.clone(),
                     notes: Vec::new(),
                     unattended: false,
+                    repair,
                 },
                 &mut NonInteractiveSudo,
                 &mut sink,

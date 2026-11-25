@@ -231,6 +231,8 @@ struct Ctx<'a> {
     state_dir: &'a Path,
     first_apply: FirstApply,
     backup_id: u64,
+    /// Reparo: grava a versão esperada por cima de qualquer diferença (com backup).
+    force: bool,
 }
 
 fn walk(base: &Path, rel: &Path, out: &mut Vec<(PathBuf, PathBuf)>) -> Result<()> {
@@ -376,6 +378,14 @@ fn sync_file(
     if ours == theirs {
         record(state, theirs_sha, None);
         return Ok(Outcome::Unchanged);
+    }
+
+    // Reparo: a versão esperada vale, sem merge (o arquivo atual vai para o backup).
+    if ctx.force {
+        backup_file(ctx, dest)?;
+        write_atomic(dest, &theirs, src_file)?;
+        record(state, theirs_sha, None);
+        return Ok(Outcome::Updated);
     }
 
     // Modo `copy`: sobrescreve sempre (com backup).
@@ -644,12 +654,44 @@ pub fn apply_module_configs(
     state: &mut ConfigState,
     sink: &mut dyn EventSink,
 ) -> Result<Vec<FileReport>> {
+    apply_configs_inner(manifest, module_dir, env, state_dir, choices, first_apply, state, sink, false)
+}
+
+/// Reparo ("Verificar integridade"): deixa todos os arquivos do módulo exatamente
+/// como o hiraku geraria agora. Edições e conflitos pendentes vão para o backup
+/// (`<state>/backups/<id>/<módulo>/`). Arquivos `seed` (estado do usuário) não mudam.
+#[allow(clippy::too_many_arguments)]
+pub fn repair_module_configs(
+    manifest: &Manifest,
+    module_dir: &Path,
+    env: &Environment,
+    state_dir: &Path,
+    choices: &BTreeMap<String, String>,
+    state: &mut ConfigState,
+    sink: &mut dyn EventSink,
+) -> Result<Vec<FileReport>> {
+    apply_configs_inner(manifest, module_dir, env, state_dir, choices, FirstApply::BackupOverwrite, state, sink, true)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn apply_configs_inner(
+    manifest: &Manifest,
+    module_dir: &Path,
+    env: &Environment,
+    state_dir: &Path,
+    choices: &BTreeMap<String, String>,
+    first_apply: FirstApply,
+    state: &mut ConfigState,
+    sink: &mut dyn EventSink,
+    force: bool,
+) -> Result<Vec<FileReport>> {
     let vars = resolve_options(manifest, choices)?;
     let ctx = Ctx {
         module: &manifest.id,
         state_dir,
         first_apply,
         backup_id: now_secs(),
+        force,
     };
     let mut reports = Vec::new();
 
@@ -732,6 +774,121 @@ pub fn apply_module_configs(
     Ok(reports)
 }
 
+/// Como um arquivo de configuração está em relação ao que o hiraku geraria agora.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FileHealth {
+    /// Igual ao esperado.
+    Ok,
+    /// Não existe no disco.
+    Missing,
+    /// O hiraku gravou este arquivo, mas ele está desatualizado (opção mudou e o sync
+    /// não chegou a aplicar).
+    Outdated,
+    /// Alguém editou o arquivo depois do último sync.
+    EditedOutside,
+    /// Existe, mas nunca foi gravado pelo hiraku (ex.: sobra de uma instalação antiga).
+    NotManaged,
+    /// Há uma versão nova esperando decisão na aba Conflitos.
+    Pending,
+    /// O bloco do hiraku não está no arquivo (ou está diferente).
+    BlockMissing,
+    /// Deveria ser um link para a pasta do módulo e não é.
+    LinkWrong,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct FileCheck {
+    pub dest: PathBuf,
+    pub health: FileHealth,
+}
+
+/// Confere, sem gravar nada, cada arquivo que os `[[config]]` do módulo gerariam.
+/// Arquivos `seed` só precisam existir.
+pub fn check_module_configs(
+    manifest: &Manifest,
+    module_dir: &Path,
+    env: &Environment,
+    choices: &BTreeMap<String, String>,
+    state_dir: &Path,
+    state: &ConfigState,
+) -> Result<Vec<FileCheck>> {
+    let vars = resolve_options(manifest, choices)?;
+    let mut out = Vec::new();
+    for entry in &manifest.config {
+        let Some(dest_template) = entry.dest.resolve(env.os) else { continue };
+        let dest_root = expand_path(dest_template, env.home.as_deref())?;
+        let src_rel = if entry.src.contains("{{") { render_template(&entry.src, &vars)? } else { entry.src.clone() };
+        if !is_safe_relative(&src_rel) {
+            continue;
+        }
+        let src_root = module_dir.join(&src_rel);
+        let Ok(meta) = fs::metadata(&src_root) else { continue };
+
+        if entry.mode == ConfigMode::Symlink {
+            let ok = fs::read_link(&dest_root).ok().zip(fs::canonicalize(&src_root).ok()).map_or(false, |(a, b)| a == b);
+            out.push(FileCheck { dest: dest_root, health: if ok { FileHealth::Ok } else { FileHealth::LinkWrong } });
+            continue;
+        }
+        if entry.mode == ConfigMode::Block {
+            let (Some(spec), false) = (entry.block.as_ref(), meta.is_dir()) else { continue };
+            let mut text = String::from_utf8(fs::read(&src_root).map_err(io_err(&src_root))?).unwrap_or_default();
+            if entry.template {
+                text = render_template(&text, &vars)?;
+            }
+            let health = match read_if_exists(&dest_root)? {
+                None if spec.only_if_exists => FileHealth::Ok,
+                None => FileHealth::Missing,
+                Some(bytes) => {
+                    let original = String::from_utf8_lossy(&bytes).to_string();
+                    match upsert_block(&original, &spec.begin, &spec.end, &text) {
+                        Ok(updated) if updated == original => FileHealth::Ok,
+                        _ => FileHealth::BlockMissing,
+                    }
+                }
+            };
+            out.push(FileCheck { dest: dest_root, health });
+            continue;
+        }
+
+        let files: Vec<(PathBuf, PathBuf)> = if meta.is_dir() {
+            collect_files(&src_root)?.into_iter().map(|(rel, abs)| (dest_root.join(rel), abs)).collect()
+        } else {
+            vec![(dest_root.clone(), src_root.clone())]
+        };
+        for (dest, src_file) in files {
+            let ours = read_if_exists(&dest)?;
+            let health = if entry.mode == ConfigMode::Seed {
+                if ours.is_some() { FileHealth::Ok } else { FileHealth::Missing }
+            } else {
+                let mut theirs = fs::read(&src_file).map_err(io_err(&src_file))?;
+                if entry.template {
+                    theirs = render_template(&String::from_utf8_lossy(&theirs), &vars)?.into_bytes();
+                }
+                let known = state.files.get(&dest.display().to_string());
+                match ours {
+                    None => FileHealth::Missing,
+                    Some(o) if o == theirs => FileHealth::Ok,
+                    Some(o) => match known {
+                        None => FileHealth::NotManaged,
+                        Some(f) if f.pending_sha256.is_some() => FileHealth::Pending,
+                        Some(f) => {
+                            let base = read_blob(state_dir, &f.base_sha256)?;
+                            if base.as_deref() == Some(o.as_slice()) {
+                                FileHealth::Outdated
+                            } else {
+                                FileHealth::EditedOutside
+                            }
+                        }
+                    },
+                }
+            };
+            out.push(FileCheck { dest, health });
+        }
+    }
+    Ok(out)
+}
+
 /// Diff unificado (atual -> versão nova pendente) para mostrar na TUI/GUI.
 pub fn conflict_diff(dest: &Path, state_dir: &Path, state: &ConfigState) -> Result<String> {
     let key = dest.display().to_string();
@@ -778,6 +935,7 @@ pub fn resolve_conflict(
             state_dir,
             first_apply: FirstApply::default(),
             backup_id: now_secs(),
+            force: false,
         };
         if dest.exists() {
             backup_file(&ctx, dest)?;

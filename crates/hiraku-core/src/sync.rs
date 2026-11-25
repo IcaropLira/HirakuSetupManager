@@ -340,6 +340,9 @@ pub struct SyncContext<'a> {
     pub notes: Vec<String>,
     /// Execução agendada: nenhum hook nem passo pode esperar por uma pergunta.
     pub unattended: bool,
+    /// "Reparar" (Verificar integridade): grava as configs exatamente como esperadas,
+    /// por cima de edições e conflitos (com backup).
+    pub repair: bool,
 }
 
 /// Traduz o resultado dos componentes para o status do módulo no relatório.
@@ -398,6 +401,7 @@ fn sync_module(
     cstate: &mut ConfigState,
     elevator: &mut dyn Elevator,
     sink: &mut dyn EventSink,
+    broken_dependency: Option<&str>,
 ) -> ModuleReport {
     let id = manifest.id.as_str();
     let env = ctx.env;
@@ -409,7 +413,12 @@ fn sync_module(
         return report;
     }
 
-    if manifest.install.is_empty() {
+    if let Some(dep) = broken_dependency {
+        // Uma dependência falhou (ex.: a fonte não baixou): não instala nem roda
+        // hooks, mas as configurações e as opções do app são aplicadas mesmo assim.
+        report.status = InstallStatus::Skipped;
+        report.detail = Some(format!("dependência '{dep}' falhou: instalação pulada, configurações aplicadas"));
+    } else if manifest.install.is_empty() {
         report.status = InstallStatus::ConfigOnly;
     } else if manifest.select_installs(env).is_empty() {
         report.status = InstallStatus::Skipped;
@@ -429,9 +438,9 @@ fn sync_module(
         }
     }
 
-    if report.status == InstallStatus::Failed {
-        return report;
-    }
+    // Mesmo se a instalação falhar (um download fora do ar, por exemplo), as
+    // configurações e as opções do app são aplicadas: elas não dependem disso.
+    // Os hooks não rodam (report.error já está preenchido).
 
     // Mantém o pin visível no `status` (a fonte da verdade é o settings.toml).
     if let Some(entry) = lock.modules.get_mut(id) {
@@ -440,16 +449,12 @@ fn sync_module(
 
     let choices = ctx.settings.options.get(id).cloned().unwrap_or_default();
     let mut configs_changed = false;
-    match configs::apply_module_configs(
-        manifest,
-        module_dir,
-        env,
-        ctx.state_dir,
-        &choices,
-        ctx.first_apply,
-        cstate,
-        sink,
-    ) {
+    let applied = if ctx.repair {
+        configs::repair_module_configs(manifest, module_dir, env, ctx.state_dir, &choices, cstate, sink)
+    } else {
+        configs::apply_module_configs(manifest, module_dir, env, ctx.state_dir, &choices, ctx.first_apply, cstate, sink)
+    };
+    match applied {
         Ok(files) => {
             configs_changed = files.iter().any(|f| {
                 !f.quiet
@@ -470,10 +475,15 @@ fn sync_module(
                 })
                 .collect();
         }
-        Err(e) => report.error = Some(format!("configs: {e}")),
+        Err(e) => {
+            report.error = Some(match report.error.take() {
+                Some(prev) => format!("{prev}; configs: {e}"),
+                None => format!("configs: {e}"),
+            })
+        }
     }
 
-    if report.error.is_none() && !manifest.hook.is_empty() {
+    if report.error.is_none() && broken_dependency.is_none() && !manifest.hook.is_empty() {
         let changed = matches!(report.status, InstallStatus::Installed | InstallStatus::Updated)
             || configs_changed;
         match configs::resolve_options(manifest, &choices) {
@@ -540,26 +550,28 @@ pub fn run_sync(
     for id in &order {
         let (manifest, module_dir) = by_id[id.as_str()];
 
+        // Conflito declarado com outro módulo habilitado: este fica de fora.
+        if let Some(other) = manifest.conflicts.iter().find(|c| ctx.settings.modules.contains(c)) {
+            let mut report = ModuleReport::new(id, InstallStatus::Skipped);
+            report.detail = Some(format!("não roda junto com '{other}' (desabilite um dos dois)"));
+            modules.push(report);
+            continue;
+        }
+
         let broken_dependency = manifest
             .requires
             .iter()
             .find(|dep| failed.contains(dep.as_str()));
-        let report = match broken_dependency {
-            Some(dep) => {
-                let mut report = ModuleReport::new(id, InstallStatus::Skipped);
-                report.detail = Some(format!("dependência '{dep}' falhou"));
-                report
-            }
-            None => sync_module(
-                &ctx,
-                manifest,
-                module_dir,
-                &mut lock,
-                &mut cstate,
-                elevator,
-                sink,
-            ),
-        };
+        let report = sync_module(
+            &ctx,
+            manifest,
+            module_dir,
+            &mut lock,
+            &mut cstate,
+            elevator,
+            sink,
+            broken_dependency.map(String::as_str),
+        );
         if report.is_failure() || report.detail.as_deref().map_or(false, |d| d.starts_with("dependência")) {
             failed.insert(id.clone());
         }
@@ -655,6 +667,7 @@ mod tests {
                     registry_source: "embedded".to_string(),
                     notes: vec!["nota".to_string()],
                     unattended: false,
+                    repair: false,
                 },
                 elevator,
                 sink,
@@ -750,7 +763,7 @@ mod tests {
     }
 
     #[test]
-    fn a_failing_module_does_not_stop_the_others_and_blocks_its_dependents() {
+    fn a_failing_module_does_not_stop_the_others_and_dependents_still_get_their_configs() {
         let mut fx = Fx::new();
         fx.module(&release_module("bad", "1.0.0", &"0".repeat(64)), &[]);
         fx.module(&config_module("child", "\"bad\"", "c.conf"), &[("c.conf", "x")]);
@@ -764,7 +777,8 @@ mod tests {
         assert!(by_id(&report, "bad").error.is_some());
         assert_eq!(by_id(&report, "child").status, InstallStatus::Skipped);
         assert!(by_id(&report, "child").detail.as_deref().unwrap().contains("bad"));
-        assert!(!fx.home.join(".config/child/c.conf").exists());
+        // a instalação do filho é pulada, mas as configurações dele entram
+        assert!(fx.home.join(".config/child/c.conf").exists());
         assert_eq!(by_id(&report, "fine").configs[0].outcome, "Created");
         assert!(report.has_failures());
     }
