@@ -125,6 +125,52 @@ fn run(program: &str, args: &[&str], timeout: Duration) -> Option<(bool, String)
     Some((out.status.success(), text))
 }
 
+/// `command -v vim nvim` num shell (`-ic` como o terminal normal, `-lic` como o kitty).
+fn resolve_in_shell(login: bool) -> Option<(String, String)> {
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+    let flag = if login { "-lic" } else { "-ic" };
+    let (_, out) = run(&shell, &[flag, "printf '@@%s|%s@@' \"$(command -v vim)\" \"$(command -v nvim)\""], Duration::from_secs(5))?;
+    let start = out.find("@@")? + 2;
+    let end = out[start..].find("@@")? + start;
+    let (v, n) = out[start..end].split_once('|')?;
+    let real = |p: &str| -> String {
+        if p.is_empty() {
+            return "(nenhum)".to_string();
+        }
+        let path = Path::new(p);
+        let canon = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        match hiraku_core::legacy::wrapper_target(path) {
+            Some(t) => format!("{p} → {}", t.display()),
+            None if canon != path => format!("{p} → {}", canon.display()),
+            None => p.to_string(),
+        }
+    };
+    Some((real(v), real(n)))
+}
+
+fn compare_terminals(shell_module: bool) -> Option<HealthItem> {
+    let normal = resolve_in_shell(false)?;
+    let login = resolve_in_shell(true)?;
+    if normal == login {
+        return Some(item("ok", "kitty e terminal normal usam o mesmo vim/nvim", format!("vim: {} · nvim: {}", normal.0, normal.1)));
+    }
+    let mut d = String::new();
+    if normal.0 != login.0 {
+        d.push_str(&format!("vim — terminal normal: {} · kitty (shell de login): {}. ", normal.0, login.0));
+    }
+    if normal.1 != login.1 {
+        d.push_str(&format!("nvim — terminal normal: {} · kitty (shell de login): {}. ", normal.1, login.1));
+    }
+    d.push_str(if shell_module {
+        "O Reparar põe ~/.local/bin na frente do PATH nos dois e remove as sobras antigas; abra terminais novos depois."
+    } else {
+        "Habilite o módulo Shell (ele põe ~/.local/bin na frente do PATH nos dois) e rode o Reparar; abra terminais novos depois."
+    });
+    let mut it = item("error", "O kitty e o terminal normal usam programas diferentes", d);
+    it.fixable = shell_module;
+    Some(it)
+}
+
 /// PATH de um terminal novo do usuário (o app pode ter sido aberto com outro PATH).
 fn shell_path() -> Option<String> {
     if cfg!(windows) {
@@ -242,6 +288,31 @@ impl Services {
             }
         }
         let path_text = path.clone().or_else(|| std::env::var("PATH").ok()).unwrap_or_default();
+
+        // Sobras do install.sh antigo em ~/.local/bin
+        if let Some(home) = env.home.as_deref() {
+            for l in hiraku_core::legacy::scan(home) {
+                use hiraku_core::legacy::LegacyKind as K;
+                let target = l.target.as_ref().map(|t| t.display().to_string()).unwrap_or_default();
+                let (level, title, detail, fixable) = match l.kind {
+                    K::OldNvim => ("error", "Neovim antigo do install.sh", format!("Aponta para {target}. Terminais que põem ~/.local/bin na frente (como o kitty) abrem esse Neovim velho em vez do atual. O Reparar remove (com o módulo Neovim habilitado)."), settings.modules.iter().any(|m| m == "nvim")),
+                    K::BrokenVimWrapper => ("error", "Wrapper antigo do vim quebrado", format!("Chama {target}, que não existe ou é o vim-minimal (que ignora a configuração). O Reparar remove."), true),
+                    K::Dangling => ("warn", "Link quebrado em ~/.local/bin", format!("Aponta para {target}, que não existe mais. O Reparar remove."), true),
+                    K::VimWrapper => ("ok", "Wrapper antigo do vim", format!("Chama {target} (funciona)."), false),
+                };
+                let mut it = item(level, title, detail);
+                it.path = Some(l.path.display().to_string());
+                it.fixable = fixable;
+                general.push(it);
+            }
+        }
+
+        // kitty x terminal normal: o kitty abre o shell em modo de login
+        if !cfg!(windows) {
+            if let Some(it) = compare_terminals(settings.modules.iter().any(|m| m == "shell")) {
+                general.push(it);
+            }
+        }
 
         let mut modules = Vec::new();
         for id in &order {

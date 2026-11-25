@@ -328,7 +328,7 @@ fn write_atomic(dest: &Path, bytes: &[u8], perms_from: &Path) -> Result<()> {
     Ok(())
 }
 
-fn backup_name(dest: &Path) -> String {
+pub(crate) fn backup_name(dest: &Path) -> String {
     let name: String = dest
         .to_string_lossy()
         .chars()

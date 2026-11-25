@@ -388,3 +388,11 @@ p.small{font-size:12px}
 .tl li b{grid-column:2;font-size:14.5px}
 .tl li small{grid-column:2;color:var(--mut);font-size:12.5px;line-height:1.5}
 .tl li code{grid-column:3;grid-row:1;font:11px var(--mono);color:var(--mut);opacity:.7}
+/* desinstalar */
+.hx-btn.danger{background:color-mix(in srgb,#d0566b 85%,transparent);border-color:#d0566b;color:#fff}
+.hx-btn.ghost.danger{background:transparent;color:#e07a8c;border-color:color-mix(in srgb,#d0566b 55%,transparent)}
+.hx-btn.ghost.danger:hover{background:color-mix(in srgb,#d0566b 14%,transparent)}
+.un-what{margin:0 0 12px;padding-left:18px;color:var(--mut);font-size:13px;line-height:1.6}
+.un-sec b{font-size:12.5px}.un-sec ul{margin:4px 0 6px;padding-left:16px;max-height:160px;overflow:auto}
+.un-sec li{font-size:12px}.un-sec code{font:11.5px var(--mono);word-break:break-all}
+.un-cmd{background:var(--bg2,#0d0a16);border:1px solid var(--ln);border-radius:10px;padding:10px 12px;font:13px var(--mono)}

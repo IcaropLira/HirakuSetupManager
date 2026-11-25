@@ -41,6 +41,8 @@ USO:
   hiraku resolve <arquivo> keep|new   resolve um conflito (keep = manter o meu)
 
   hiraku enable|disable <módulo>...   escolhe quais módulos o sync mantém em dia
+  hiraku uninstall <módulo>...|--all  desfaz o que o hiraku fez: configs (os arquivos de antes
+                                      voltam), plugins e programas baixados; desabilita o módulo
   hiraku set <módulo> chave=valor     define uma opção de módulo (ex.: style=solid)
   hiraku pin <módulo> <versão>        fixa a versão do binário (ex.: 0.10.*); unpin remove
   hiraku mode user|system|auto        define o modo de instalação padrão
@@ -86,6 +88,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
         Some("diff") => cmd_diff(&args[1..]),
         Some("resolve") => cmd_resolve(&args[1..]),
         Some("registry") => cmd_registry(&args[1..]),
+        Some("uninstall") => cmd_uninstall(&args[1..]),
         Some("enable") => cmd_enable(&args[1..], true),
         Some("disable") => cmd_enable(&args[1..], false),
         Some("set") => cmd_set(&args[1..]),
@@ -606,6 +609,53 @@ fn cmd_enable(args: &[String], enable: bool) -> Result<(), String> {
             println!("{id}: {}", if removed { "desabilitado (o que já foi instalado permanece)" } else { "não estava habilitado" });
         }
     }
+    save_settings(&file, &settings)
+}
+
+fn cmd_uninstall(args: &[String]) -> Result<(), String> {
+    let all = args.iter().any(|a| a == "--all");
+    let rest: Vec<String> = args.iter().filter(|a| *a != "--all").cloned().collect();
+    let flags = parse_flags(&rest)?;
+    if flags.positional.is_empty() && !all {
+        return Err("uso: hiraku uninstall <módulo>... | --all".to_string());
+    }
+    let dir = registry_dir(&flags)?;
+    let known = registry::load_dir(&dir).map_err(|e| e.to_string())?;
+    let (env, file, mut settings) = load_settings()?;
+    let state_dir = paths::state_dir(&env).ok_or("não foi possível determinar o diretório de estado")?;
+    let _guard = SyncLock::acquire(&state_dir).map_err(|e| e.to_string())?;
+    let lock_path = state_dir.join("lock.toml");
+    let mut lock = Lockfile::load(&lock_path).map_err(|e| e.to_string())?;
+    let cpath = state_path(&state_dir);
+    let mut cstate = ConfigState::load(&cpath).map_err(|e| e.to_string())?;
+    let mut ids = flags.positional.clone();
+    if all {
+        ids.extend(settings.modules.iter().cloned());
+        ids.extend(lock.modules.keys().map(|k| k.split('/').next().unwrap_or(k).to_string()));
+        ids.extend(cstate.files.values().map(|f| f.module.clone()));
+    }
+    ids.sort();
+    ids.dedup();
+    let mut sink = |event: Event| print_event(&event);
+    for id in &ids {
+        let Some(m) = known.iter().find(|m| &m.id == id) else {
+            println!("{id}: não existe no registry; tirando só dos registros");
+            lock.modules.retain(|k, _| k != id && !k.starts_with(&format!("{id}/")));
+            cstate.files.retain(|_, f| &f.module != id);
+            settings.disable(id);
+            continue;
+        };
+        let choices = settings.options.get(id).cloned().unwrap_or_default();
+        let r = hiraku_core::uninstall::uninstall_module(m, &dir.join(id), &env, &choices, &state_dir, &mut lock, &mut cstate, &mut sink)
+            .map_err(|e| format!("{id}: {e}"))?;
+        settings.disable(id);
+        println!("{id}: {} apagado(s), {} restaurado(s), {} com cópia no backup, {} mantido(s)", r.removed.len(), r.restored.len(), r.backed_up.len(), r.kept.len());
+        for n in &r.notes {
+            println!("  ! {n}");
+        }
+    }
+    lock.save(&lock_path).map_err(|e| e.to_string())?;
+    cstate.save(&cpath).map_err(|e| e.to_string())?;
     save_settings(&file, &settings)
 }
 

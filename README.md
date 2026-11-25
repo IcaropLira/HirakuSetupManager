@@ -64,6 +64,15 @@ paleta/transparência do terminal e se quer atualização automática. Nada é g
   desatualizado, faltando), se o último sync deu erro, se os comandos existem num terminal
   novo, se o `vim` é o completo (o vim-minimal ignora a configuração) e se o Neovim é 0.10+.
   **Reparar** grava tudo de novo como esperado, com backup (`hiraku sync --repair` no terminal).
+- **Desinstalar**: em cada módulo (aba Módulos) ou tudo de uma vez (Configurações → Sistema).
+  As configurações saem e os arquivos de antes do hiraku voltam; os editados à mão saem com
+  cópia no backup; plugins e programas baixados são apagados; pacotes do sistema ficam (o
+  resumo mostra o comando). "Desinstalar o app" faz tudo isso, apaga os dados do app e
+  remove o próprio app. No terminal: `hiraku uninstall <módulo>... | --all`.
+- **kitty × terminal normal**: o kitty abre o shell em modo de login, então pode achar outro
+  `vim`/`nvim` no PATH. O bloco do Shell agora põe `~/.local/bin` sempre na frente, o sync
+  remove as sobras do install.sh antigo (Neovim velho em `~/.local/nvim-icaro`, wrapper do
+  vim quebrado, links quebrados) e a verificação de integridade compara os dois terminais.
 - **Vim clássico (old school)**: o Vim de antes do Neovim, instalado pelo instalador original
   da época. Uma linha do tempo com 8 versões (09/09 a 07/10/2026) no Personalizar; trocar de
   versão reinstala. Não roda junto com o Vim moderno (habilitar um desliga o outro).

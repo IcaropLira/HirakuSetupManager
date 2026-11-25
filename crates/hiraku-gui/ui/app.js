@@ -198,11 +198,11 @@ function viewModules() {
       <div class="pj-top">${tile(m)}<div class="pj-main"><b>${esc(m.name)}</b><small>${m.requires.length ? "usa " + esc(m.requires.join(", ")) : esc(m.id)}</small></div></div>
       <div class="pj-desc">${esc(m.description)}</div>
       <div class="pj-path">${r.installed ? `<b>${esc(r.installed)}</b>` : "não instalado"}${r.pin ? ` · <span class="tag acc">fixado ${esc(r.pin)}</span>` : ""}${st ? ` · <span title="${esc(last.error || last.detail || "")}">${st[0]} ${st[2]}</span>` : ""}</div>
-      <div class="pj-act">${opts}<button class="hx-btn ghost sm" data-pin="${m.id}">${r.pin ? "Mudar versão fixada" : "Fixar versão"}</button>${on && r.installed ? `<button class="hx-btn ghost sm" data-apply="${m.id}">Aplicar agora</button>` : ""}</div></article>`;
+      <div class="pj-act">${opts}<button class="hx-btn ghost sm" data-pin="${m.id}">${r.pin ? "Mudar versão fixada" : "Fixar versão"}</button>${on && r.installed ? `<button class="hx-btn ghost sm" data-apply="${m.id}">Aplicar agora</button>` : ""}${r.installed ? `<button class="hx-btn ghost sm danger" data-uninstall="${m.id}">Desinstalar</button>` : ""}</div></article>`;
   }).join("");
   const chip = (k, t) => `<button class="chip ${MOD_FILTER === k ? "on" : ""}" data-filter="${k}">${t}</button>`;
   return `<div class="hx-wrap one"><div class="hx-main">
-    <section class="hx-hero sm"><div class="hx-logo">${applogo()}</div><div class="hx-hmain"><h2>Módulos</h2><p class="mut">Ligue o que o hiraku deve instalar e manter em dia. Desligar não desinstala nada.</p></div></section>
+    <section class="hx-hero sm"><div class="hx-logo">${applogo()}</div><div class="hx-hmain"><h2>Módulos</h2><p class="mut">Ligue o que o hiraku deve instalar e manter em dia. Desligar só para de manter em dia; para tirar de vez, use Desinstalar.</p></div></section>
     <div class="hx-sec">Seus módulos <span class="n">${SNAP.settings.modules.length}/${mods.length}</span></div>
     <div class="bar">${chip("all", "Todos")}${chip("on", "Habilitados")}${chip("off", "Desligados")}${chip("inst", "Instalados")}</div>
     <div class="pj-grid">${cards || '<div class="hx-panel mut">Nada aqui com esse filtro.</div>'}</div></div></div>`;
@@ -612,7 +612,7 @@ function viewUpdates() {
 function bindView() {
   const v = $("#view");
   v.onclick = async e => {
-    const t = e.target.closest("[data-v],[data-act],[data-goto],[data-czmod],[data-czsec],[data-filter],[data-pin],[data-apply],[data-cf],[data-resolve],[data-every],[data-link],[data-install]");
+    const t = e.target.closest("[data-v],[data-act],[data-goto],[data-czmod],[data-czsec],[data-filter],[data-pin],[data-apply],[data-cf],[data-resolve],[data-every],[data-link],[data-install],[data-uninstall]");
     if (!t || !v.contains(t)) return;
     const d = t.dataset;
     if (d.v) return go(d.v);
@@ -633,6 +633,8 @@ function bindView() {
     if (d.act) return action(d.act);
     const lk = e.target.closest("[data-link]");
     if (lk) return call("open_url", { url: lk.dataset.link }).catch(fail);
+    const un = e.target.closest("[data-uninstall]");
+    if (un) return uninstallDialog([un.dataset.uninstall]);
     const ins = e.target.closest("[data-install]");
     if (ins) return runSync(ins.dataset.install);
   };
@@ -773,6 +775,62 @@ async function healthOpen() {
   $("#hl-fix").onclick = () => { closeModal(); runSync(null, { repair: true }); };
 }
 
+// ------------------------------------------------------------------ desinstalar
+function reportList(reports) {
+  const sec = (t, xs) => xs.length ? `<div class="un-sec"><b>${t} (${xs.length})</b><ul>${xs.slice(0, 40).map(x => `<li><code>${esc(x)}</code></li>`).join("")}${xs.length > 40 ? `<li class="mut">… e mais ${xs.length - 40}</li>` : ""}</ul></div>` : "";
+  return reports.map(r => `<section class="hl-mod"><header>${tile(modInfo(r.module) || { id: r.module, name: r.module }, "sm")}<b>${esc((modInfo(r.module) || {}).name || r.module)}</b></header>
+    ${sec("Apagados", r.removed)}${sec("Voltaram a ser o arquivo de antes do hiraku", r.restored)}${sec("Editados à mão (cópia no backup)", r.backed_up)}${sec("Mantidos (seus)", r.kept)}
+    ${r.notes.map(n => `<div class="hl-it warn"><span class="hl-ic">!</span><div><small>${esc(n)}</small></div></div>`).join("")}
+    ${!r.removed.length && !r.restored.length && !r.backed_up.length && !r.notes.length ? '<p class="mut small">Nada a desfazer.</p>' : ""}</section>`).join("");
+}
+
+function uninstallDialog(ids) {
+  const all = !ids.length, name = all ? "tudo" : ((modInfo(ids[0]) || {}).name || ids[0]);
+  const p = modal(`<div class="st-head"><h2>Desinstalar ${esc(name)}?</h2><button class="x" data-x>✕</button></div>
+    <div class="st-pad"><ul class="un-what">
+      <li>As configurações que o hiraku escreveu saem; os arquivos que você tinha antes do hiraku voltam.</li>
+      <li>Arquivos editados à mão saem com uma cópia na pasta de backups.</li>
+      <li>Plugins e programas baixados pelo hiraku (em ~/.local) são apagados.</li>
+      <li>Pacotes do sistema (dnf/apt/brew) ficam; o resumo mostra o comando para tirar.</li>
+      ${all ? "" : "<li>O módulo sai da lista de habilitados.</li>"}
+    </ul>
+    <div class="hx-cta" style="justify-content:flex-end"><button class="hx-btn ghost" data-x>Cancelar</button><button class="hx-btn danger" id="un-go">Desinstalar</button></div></div>`, "small");
+  $$("[data-x]", p).forEach(b => b.onclick = closeModal);
+  $("#un-go").onclick = async () => {
+    $("#un-go").disabled = true; $("#un-go").textContent = "Desinstalando…";
+    try {
+      const reports = await call("uninstall", { ids });
+      await reload();
+      const q = modal(`<div class="st-head"><h2>Desinstalado</h2><button class="x" data-x>✕</button></div><div class="st-pad hl">${reportList(reports) || '<p class="mut">Nada a desfazer.</p>'}<div class="hx-cta" style="justify-content:flex-end"><button class="hx-btn" data-x>Fechar</button></div></div>`, "wide");
+      $$("[data-x]", q).forEach(b => b.onclick = closeModal);
+    } catch (e) { closeModal(); fail(e); }
+  };
+}
+
+function uninstallAppDialog() {
+  const p = modal(`<div class="st-head"><h2>Desinstalar o Hiraku Setup Manager?</h2><button class="x" data-x>✕</button></div>
+    <div class="st-pad"><ul class="un-what">
+      <li>Desinstala todos os programas e configurações do hiraku (os arquivos de antes dele voltam).</li>
+      <li>Apaga as opções do app, o registry baixado e o sync agendado.</li>
+      <li>Remove o app: o AppImage é apagado; o pacote .rpm/.deb pede a senha de administrador; no macOS vai para a Lixeira; no Windows abre o desinstalador.</li>
+    </ul>
+    <label class="chk"><input type="checkbox" id="un-keep" checked> Guardar os backups (arquivos antigos e editados)</label>
+    <div class="hx-cta" style="justify-content:flex-end"><button class="hx-btn ghost" data-x>Cancelar</button><button class="hx-btn danger" id="un-go">Desinstalar tudo e o app</button></div></div>`, "small");
+  $$("[data-x]", p).forEach(b => b.onclick = closeModal);
+  $("#un-go").onclick = async () => {
+    $("#un-go").disabled = true; $("#un-go").textContent = "Desinstalando…";
+    try {
+      const r = await call("uninstall_app", { keepBackups: $("#un-keep").checked });
+      const q = modal(`<div class="st-head"><h2>${r.app.done ? "Pronto, até mais!" : "Quase lá"}</h2></div><div class="st-pad hl">
+        <div class="hl-sum ${r.app.done ? "ok" : ""}">${esc(r.app.message)}</div>
+        ${r.app.command ? `<p>Rode no terminal:</p><pre class="un-cmd"><code>${esc(r.app.command)}</code></pre>` : ""}
+        ${reportList(r.reports)}
+        <div class="hx-cta" style="justify-content:flex-end"><button class="hx-btn" id="un-quit">Fechar o app</button></div></div>`, "wide");
+      $("#un-quit").onclick = () => call("quit").catch(() => window.close());
+    } catch (e) { closeModal(); fail(e); }
+  };
+}
+
 // "Lembrar o sudo": regra do sudoers que deixa só o install do dnf/apt/... sem senha.
 function sudoRow() {
   if (INFO.os !== "linux" || !INFO.pkg_needs_root || INFO.is_root) return "";
@@ -853,7 +911,10 @@ function settingsOpen(tab) {
       <div class="st-sec">Este app</div>
       <div class="st-row"><div class="st-lbl"><b>Atualizar o app sozinho</b><small>Procura versão nova ao abrir e a cada 6 h, baixa em segundo plano e só pede para reiniciar.</small></div><label class="sw"><input type="checkbox" id="autoapp" ${UI.autoApp !== false ? "checked" : ""}><i></i></label></div>
       <div class="st-row"><div class="st-lbl"><b>Arquivo de configurações</b><small style="font-family:var(--mono)">${esc(INFO.settings_file)}</small></div><button class="hx-btn ghost sm" id="od">Abrir pasta</button></div>
-      <div class="st-row"><div class="st-lbl"><b>Refazer a instalação</b><small>Abre o assistente com as escolhas atuais.</small></div><button class="hx-btn ghost sm" id="rw">Abrir assistente</button></div>`;
+      <div class="st-row"><div class="st-lbl"><b>Refazer a instalação</b><small>Abre o assistente com as escolhas atuais.</small></div><button class="hx-btn ghost sm" id="rw">Abrir assistente</button></div>
+      <div class="st-sec">Desinstalar</div>
+      <div class="st-row"><div class="st-lbl"><b>Desinstalar tudo</b><small>Tira as configurações, plugins e programas que o hiraku instalou; os arquivos de antes do hiraku voltam. O app continua.</small></div><button class="hx-btn ghost sm danger" id="un-all">Desinstalar tudo</button></div>
+      <div class="st-row"><div class="st-lbl"><b>Desinstalar o Hiraku Setup Manager</b><small>Desinstala tudo, apaga os dados do app (opções, registry, agendamento) e remove o próprio app.</small></div><button class="hx-btn ghost sm danger" id="un-app">Desinstalar o app</button></div>`;
     body.onclick = async e => {
       const t = e.target.closest("[data-mode]");
       if (t) { try { await call("set_mode", { mode: t.dataset.mode || null }); toast("Modo salvo. Vale no próximo sync."); } catch (err) { fail(err); } await reload(); settingsOpen(); }
@@ -865,6 +926,8 @@ function settingsOpen(tab) {
       if (await sudoDialog([], { remember: on, forget: !on })) await reload();
       settingsOpen();
     };
+    $("#un-all").onclick = () => uninstallDialog([]);
+    $("#un-app").onclick = () => uninstallAppDialog();
     $("#od").onclick = () => call("open_config_dir").catch(fail);
     $("#autoapp").onchange = e => { UI.autoApp = e.target.checked; saveUI(); };
     $("#rw").onclick = () => { closeModal(); wzOpen(false); };
@@ -1074,7 +1137,7 @@ const MENUS = {
   edit: [["Configurações…", "Ctrl+,", () => settingsOpen()]],
   view: [["Início", "Ctrl+1", () => go("home")], ["Módulos", "Ctrl+2", () => go("modules")], ["Personalizar", "Ctrl+3", () => go("custom")], ["Conflitos", "Ctrl+4", () => go("conflicts")], ["Atualizações", "Ctrl+5", () => go("updates")], "-", ["Alternar claro/escuro", "Ctrl+Shift+L", toggleDark]],
   go: [["Refazer instalação…", "", () => wzOpen(false)], ["Arquivo settings.toml", "", () => action("opendir")]],
-  help: [["Verificar integridade (nada aplica?)", "Ctrl+I", () => healthOpen()], ["Atalhos de teclado", "", () => settingsOpen("keys")], ["Verificar atualizações", "", () => checkAppUpdate(true)], "-", ["Sobre o Hiraku Setup", "", () => settingsOpen("about")]],
+  help: [["Verificar integridade (nada aplica?)", "Ctrl+I", () => healthOpen()], ["Desinstalar…", "", () => settingsOpen("system")], ["Atalhos de teclado", "", () => settingsOpen("keys")], ["Verificar atualizações", "", () => checkAppUpdate(true)], "-", ["Sobre o Hiraku Setup", "", () => settingsOpen("about")]],
 };
 function buildMenus() {
   $$(".menubar .nvm").forEach(m => {
@@ -1171,6 +1234,10 @@ const MOCK = {
       case "resolve": return null;
       case "needs_root": return [];
       case "sudo_auth": return null;
+      case "uninstall": { const ids = a.ids.length ? a.ids : this.settings.modules.slice(); this.settings.modules = this.settings.modules.filter(m => !ids.includes(m));
+        return ids.map(id => ({ module: id, removed: [`/home/icaro/.config/${id}/a.conf`, `/home/icaro/.local/share/hiraku/${id}`], restored: id === "vim" ? ["/home/icaro/.vimrc"] : [], backed_up: [], kept: id === "vim" ? ["/home/icaro/.vim/config/local.vim"] : [], notes: id === "tmux" ? ["tmux veio do dnf e continua no sistema (outros programas podem usar). Para tirar: sudo dnf remove tmux"] : [] })); }
+      case "uninstall_app": return { reports: [{ module: "vim", removed: ["/home/icaro/.vim/config/hiraku.vim"], restored: ["/home/icaro/.vimrc"], backed_up: [], kept: [], notes: [] }], app: { kind: "rpm", done: false, command: "sudo dnf remove hiraku-setup-manager", message: "Falta só tirar o app: isso pede a senha de administrador." } };
+      case "quit": return null;
       case "health": return { problems: this.repaired ? 0 : 3, fixable: this.repaired ? 0 : 2,
         general: [{ level: "ok", title: "Último sync", detail: "há 3 min, registry v6 (remote)", fixable: false }],
         modules: [

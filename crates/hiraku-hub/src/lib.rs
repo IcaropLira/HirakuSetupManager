@@ -10,6 +10,7 @@
 
 pub mod catalog;
 pub mod health;
+pub mod uninstall;
 pub mod model;
 pub mod presets;
 pub mod services;

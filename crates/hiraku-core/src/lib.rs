@@ -23,6 +23,8 @@ pub mod release;
 pub mod schedule;
 pub mod settings;
 pub mod sync;
+pub mod uninstall;
+pub mod legacy;
 pub mod verify;
 
 pub use configstate::ConfigState;
