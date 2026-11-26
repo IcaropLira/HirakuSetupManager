@@ -78,7 +78,7 @@ group = "plugin-coc-nvim"
 optional = true
 method = "git"
 url = "https://github.com/neoclide/coc.nvim"
-rev = "085a047dc5913c9a6dbf20dcebaceb606ac8e101"
+rev = "f3f05e1074c4dca8f3244684186bbf8687952ad0"
 dest = "~/.vim/pack/plugins/opt/coc.nvim"
 bump = { branch = "release" }
 
