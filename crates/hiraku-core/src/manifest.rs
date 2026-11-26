@@ -166,6 +166,10 @@ pub struct InstallStep {
     /// não for gerenciado pelo hiraku (ex.: o tmux que já veio na máquina).
     #[serde(default)]
     pub provides: Vec<String>,
+    /// Versão mínima do comando já existente para valer como "já instalado" (ex.:
+    /// "0.11" para o nvim). Mais velho que isso, o hiraku instala o dele.
+    #[serde(default)]
+    pub min_version: Option<String>,
     /// De onde `hiraku registry bump` descobre a versão mais nova deste passo.
     #[serde(default)]
     pub bump: Option<BumpSource>,

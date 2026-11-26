@@ -323,6 +323,36 @@ fn start_sync(app: AppHandle, state: State<AppState>, only: Option<String>, repa
     Ok(())
 }
 
+/// Desinstala módulos (vazio = tudo que o hiraku tocou).
+#[tauri::command]
+fn uninstall(state: State<AppState>, ids: Vec<String>) -> Res<Vec<hiraku_core::uninstall::UninstallReport>> {
+    if *state.running.lock().map_err(|e| e.to_string())? {
+        return Err("espere o sync terminar".to_string());
+    }
+    services(&state)?.uninstall(&ids)
+}
+
+#[derive(Serialize)]
+struct AppUninstall {
+    reports: Vec<hiraku_core::uninstall::UninstallReport>,
+    app: hiraku_hub::uninstall::AppRemoval,
+}
+
+/// Desinstala tudo, apaga os dados do app e tenta remover o próprio app.
+#[tauri::command]
+fn uninstall_app(state: State<AppState>, keep_backups: bool) -> Res<AppUninstall> {
+    if *state.running.lock().map_err(|e| e.to_string())? {
+        return Err("espere o sync terminar".to_string());
+    }
+    let (reports, app) = services(&state)?.uninstall_app(keep_backups)?;
+    Ok(AppUninstall { reports, app })
+}
+
+#[tauri::command]
+fn quit(app: AppHandle) {
+    app.exit(0);
+}
+
 /// "Verificar integridade": o que está diferente do esperado (não grava nada).
 #[tauri::command]
 fn health(state: State<AppState>) -> Res<hiraku_hub::health::HealthReport> {
@@ -435,6 +465,9 @@ fn main() -> ExitCode {
             sudo_auth,
             sudo_remember,
             health,
+            uninstall,
+            uninstall_app,
+            quit,
             start_sync,
             refresh_registry,
             resolve_dependencies,

@@ -546,6 +546,14 @@ pub fn run_sync(
         modules.push(report);
     }
 
+    // Sobras do install.sh antigo em ~/.local/bin (nvim antigo, wrapper quebrado...).
+    if let Some(home) = ctx.env.home.as_deref() {
+        let nvim_managed = order.iter().any(|m| m == "nvim");
+        for line in crate::legacy::cleanup(home, nvim_managed) {
+            sink.emit(crate::event::Event::Log { module: "hiraku".to_string(), line });
+        }
+    }
+
     let mut failed: HashSet<String> = HashSet::new();
     for id in &order {
         let (manifest, module_dir) = by_id[id.as_str()];

@@ -93,6 +93,7 @@ pub fn install_module(
         if !step.provides.is_empty()
             && before.is_none()
             && step.provides.iter().all(|c| command_exists(c))
+            && step.min_version.as_deref().map_or(true, |min| command_at_least(&step.provides[0], min))
         {
             sink.emit(Event::Skipped {
                 module: id.to_string(),
@@ -813,5 +814,24 @@ dest = "~/.local/extra"
         .unwrap_err();
         assert!(matches!(err, Error::Unsupported(_)));
         assert!(dest.join("arquivo-do-usuario").exists());
+    }
+}
+
+/// `cmd --version` mostra uma versão >= `min`? (primeiro "x.y[.z]" da saída)
+fn command_at_least(cmd: &str, min: &str) -> bool {
+    let Ok(out) = std::process::Command::new(cmd).arg("--version").stdin(std::process::Stdio::null()).output() else {
+        return false;
+    };
+    let text = String::from_utf8_lossy(&out.stdout);
+    let found = text.split(|c: char| !(c.is_ascii_digit() || c == '.')).find(|w| w.contains('.') && w.starts_with(|c: char| c.is_ascii_digit()));
+    let parse = |v: &str| v.split('.').map(|p| p.parse::<u64>().unwrap_or(0)).collect::<Vec<_>>();
+    found.is_some_and(|f| parse(f) >= parse(min))
+}
+
+#[cfg(test)]
+mod min_version_tests {
+    #[test]
+    fn missing_command_is_never_new_enough() {
+        assert!(!super::command_at_least("comando-que-nao-existe-hiraku", "0.1"));
     }
 }
