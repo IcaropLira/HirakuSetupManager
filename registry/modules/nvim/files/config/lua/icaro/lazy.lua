@@ -10,9 +10,24 @@ if not (vim.uv or vim.loop).fs_stat(path) then
 end
 vim.opt.rtp:prepend(path)
 
+-- Estilo (app → Neovim → Estilos): cada plugin tem um nível mínimo; abaixo dele o
+-- lazy não carrega (continua baixado, então trocar de estilo é instantâneo).
+local LEVEL_OF = {
+  ["tokyonight.nvim"] = 1, ["catppuccin"] = 1, ["kanagawa.nvim"] = 1, ["nightfox.nvim"] = 1,
+  ["nvim-treesitter"] = 1,
+  ["nvim-autopairs"] = 2,
+  ["blink.cmp"] = 3, ["friendly-snippets"] = 3, ["nvim-lspconfig"] = 3, ["mason.nvim"] = 3,
+}
+local level = require("icaro.hiraku").level()
+
 require("lazy").setup({
   spec = { { import = "icaro.plugins" } },
-  defaults = { lazy = true },
+  defaults = {
+    lazy = true,
+    cond = function(plugin)
+      return level >= (LEVEL_OF[plugin.name] or 4)
+    end,
+  },
   install = { colorscheme = { "habamax" } },
   checker = { enabled = false },
   change_detection = { notify = false },

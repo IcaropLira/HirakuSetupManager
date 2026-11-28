@@ -390,6 +390,17 @@ impl Services {
         Ok(enabled)
     }
 
+    /// Aplica o estilo `preset` do módulo `module`: grava as opções dele e habilita o
+    /// módulo certo (o próprio ou o do estilo, ex.: Vim clássico), desligando o que
+    /// conflita. Devolve o módulo que precisa de sync.
+    pub fn apply_preset(&self, module: &str, preset: &str) -> Result<String, String> {
+        let mut settings = Settings::load(&self.settings_file).map_err(|e| e.to_string())?;
+        let manifests: Vec<&Manifest> = self.manifests.iter().map(|(m, _)| m).collect();
+        let target = settings.apply_preset(&manifests, module, preset)?;
+        settings.save(&self.settings_file).map_err(|e| e.to_string())?;
+        Ok(target)
+    }
+
     /// Módulos em conflito com `id` (declarados em qualquer um dos dois lados).
     pub fn conflicting(&self, id: &str) -> Vec<String> {
         let mut out = Vec::new();
@@ -693,6 +704,63 @@ mod tests {
         fx.services.set_option("app", "opacity", None).unwrap();
         let (s, _) = fx.services.settings_and_lock().unwrap();
         assert!(s.options.is_empty(), "sem escolhas, sem tabela vazia");
+    }
+
+    #[test]
+    fn apply_preset_resets_other_presets_and_swaps_conflicting_modules() {
+        let mut fx = fixture();
+        let ed = Manifest::from_toml_str(
+            "schema = 1\nid = \"ed\"\nname = \"ed\"\ndescription = \"d\"\n\
+             [options.perfil]\ntype = \"choice\"\ndefault = \"completo\"\nvalues = [\"bruto\", \"dalton\", \"completo\"]\n\
+             [options.tela]\ntype = \"bool\"\ndefault = true\n\
+             [[preset]]\nid = \"bruto\"\nname = \"Bruto\"\noptions = { perfil = \"bruto\", tela = \"false\" }\n\
+             [[preset]]\nid = \"dalton\"\nname = \"Dalton\"\noptions = { perfil = \"dalton\" }\n\
+             [[preset]]\nid = \"velho\"\nname = \"Velho\"\nmodule = \"ed-velho\"\n",
+            "t",
+        )
+        .unwrap();
+        let velho = Manifest::from_toml_str(
+            "schema = 1\nid = \"ed-velho\"\nname = \"v\"\ndescription = \"d\"\nconflicts = [\"ed\"]\n",
+            "t",
+        )
+        .unwrap();
+        let dir = fx.services.manifests[0].1.clone();
+        fx.services.manifests.push((ed, dir.clone()));
+        fx.services.manifests.push((velho, dir));
+        let s = &fx.services;
+
+        assert_eq!(s.apply_preset("ed", "bruto").unwrap(), "ed");
+        let st = Settings::load(&s.settings_file).unwrap();
+        assert_eq!(st.options["ed"]["tela"], "false");
+        assert!(st.modules.contains(&"ed".to_string()));
+
+        // Dalton não fala de "tela": ela volta ao padrão em vez de herdar do Bruto
+        s.apply_preset("ed", "dalton").unwrap();
+        let st = Settings::load(&s.settings_file).unwrap();
+        assert_eq!(
+            st.options["ed"].get("perfil").map(String::as_str),
+            Some("dalton")
+        );
+        assert!(!st.options["ed"].contains_key("tela"));
+
+        // o estilo que é outro módulo liga ele e desliga o conflitante
+        assert_eq!(s.apply_preset("ed", "velho").unwrap(), "ed-velho");
+        let st = Settings::load(&s.settings_file).unwrap();
+        assert!(st.modules.contains(&"ed-velho".to_string()));
+        assert!(!st.modules.contains(&"ed".to_string()));
+        assert_eq!(
+            st.options["ed"].get("perfil").map(String::as_str),
+            Some("dalton")
+        );
+
+        // e voltar para um estilo normal desfaz a troca
+        s.apply_preset("ed", "bruto").unwrap();
+        let st = Settings::load(&s.settings_file).unwrap();
+        assert!(st.modules.contains(&"ed".to_string()));
+        assert!(!st.modules.contains(&"ed-velho".to_string()));
+
+        assert!(s.apply_preset("ed", "nada").is_err());
+        assert!(s.apply_preset("nada", "bruto").is_err());
     }
 
     #[test]

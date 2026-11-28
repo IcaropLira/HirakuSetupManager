@@ -59,6 +59,19 @@ pub struct ModuleInfo {
     pub homepage: Option<String>,
     /// Módulos em cuja aba "Descobrir" este aparece.
     pub discover: Vec<String>,
+    /// Estilos prontos (Bruto, Competição, Full...).
+    pub presets: Vec<PresetInfo>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct PresetInfo {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub tag: Option<String>,
+    pub includes: Vec<String>,
+    pub options: BTreeMap<String, String>,
+    pub module: Option<String>,
 }
 
 pub fn build_catalog(manifests: &[(Manifest, PathBuf)], os: Os) -> Vec<ModuleInfo> {
@@ -77,6 +90,19 @@ pub fn build_catalog(manifests: &[(Manifest, PathBuf)], os: Os) -> Vec<ModuleInf
                 .collect(),
             homepage: m.homepage.clone(),
             discover: m.discover.clone(),
+            presets: m
+                .presets
+                .iter()
+                .map(|p| PresetInfo {
+                    id: p.id.clone(),
+                    name: p.name.clone(),
+                    description: p.description.clone(),
+                    tag: p.tag.clone(),
+                    includes: p.includes.clone(),
+                    options: p.options.clone(),
+                    module: p.module.clone(),
+                })
+                .collect(),
         })
         .collect();
     out.sort_by(|a, b| a.id.cmp(&b.id));
@@ -393,6 +419,7 @@ mod tests {
             options: vec![],
             homepage: None,
             discover: Vec::new(),
+            presets: Vec::new(),
         };
         let cat = vec![
             info("font", &[]),

@@ -256,6 +256,14 @@ function M.apply_toggles()
   end
 end
 
+-- Estilo escolhido no app (perfil): até onde a configuração vai.
+--   0 bruto · 1 dalton (sintaxe/tema) · 2 competicao (templates, F-keys, folha, fecha-pares)
+--   3 competicao_ac (+ autocomplete e LSP) · 4 completo (tudo)
+local LEVELS = { bruto = 0, dalton = 1, competicao = 2, competicao_ac = 3, completo = 4 }
+function M.level()
+  return LEVELS[M.get("perfil", "completo")] or 4
+end
+
 --- Template de arquivo novo do app (template_<lang>), ou nil se o app não define.
 function M.template(key)
   local k = "template_" .. key

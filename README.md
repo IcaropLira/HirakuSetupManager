@@ -35,6 +35,23 @@ paleta/transparência do terminal e se quer atualização automática. Nada é g
 
 ## Depois de instalado
 
+- **Estilos do Vim e do Neovim**: no topo da página de cada editor, um clique troca o perfil
+  inteiro — bom para quem usa o mesmo editor em situações diferentes (maratona, aula, dia a dia):
+
+  | Estilo | O que vem |
+  |---|---|
+  | **Bruto** | o editor puro: sem tema, sem destaque de sintaxe, sem plugins |
+  | **Dalton** | só destaque de sintaxe, tema e as opções básicas |
+  | **Competição** | template ao criar `.cpp/.java/.py`, teclas de compilar/executar/testar, fecha-pares, folha de atalhos; sem autocomplete |
+  | **Competição + AC** | Competição + autocomplete em C++, Java e Python |
+  | **Apresentação** | tudo ligado, mas com tela limpa para mostrar código (números absolutos, sem dicas inline) |
+  | **Full** | tudo |
+  | **Old School** (só Vim) | o Vim de antes do Neovim (o módulo Vim clássico) |
+
+  Os plugins continuam instalados em todos os estilos, então voltar é instantâneo; vale ao
+  reabrir o editor. Mexer numa opção depois deixa o estilo como "personalizado".
+  No terminal (máquina de prova sem interface): `hiraku style vim` lista e
+  `hiraku style vim competicao && hiraku sync` troca.
 - **Personalizar**: tudo do kitty, tmux, Vim e Neovim, aplicado na hora — inclusive com o
   editor/terminal aberto:
   - **kitty**: paleta, opacidade, desfoque;

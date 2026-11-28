@@ -758,6 +758,7 @@ mod tests {
                 ],
                 homepage: None,
                 discover: Vec::new(),
+                presets: Vec::new(),
             },
             ModuleInfo {
                 id: "tmux".into(),
@@ -768,6 +769,7 @@ mod tests {
                 options: vec![],
                 homepage: None,
                 discover: Vec::new(),
+                presets: Vec::new(),
             },
         ]
     }

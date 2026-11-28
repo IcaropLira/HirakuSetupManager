@@ -128,6 +128,53 @@ impl Settings {
             .or_default()
             .insert(key.to_string(), value.to_string());
     }
+
+    /// Aplica um estilo pronto (`[[preset]]` do manifest de `module`) e devolve o
+    /// módulo que passa a valer (o próprio ou o do estilo, como o Vim clássico).
+    ///
+    /// Tudo que algum estilo do módulo mexe volta ao padrão antes, para que trocar
+    /// de estilo dê sempre o mesmo resultado, venha de onde vier. O módulo alvo é
+    /// habilitado e os que conflitam com ele, desabilitados.
+    pub fn apply_preset(
+        &mut self,
+        manifests: &[&crate::manifest::Manifest],
+        module: &str,
+        preset: &str,
+    ) -> std::result::Result<String, String> {
+        let m = manifests
+            .iter()
+            .find(|m| m.id == module)
+            .ok_or_else(|| format!("módulo '{module}' não existe"))?;
+        let p = m.presets.iter().find(|p| p.id == preset).ok_or_else(|| {
+            let ids: Vec<&str> = m.presets.iter().map(|p| p.id.as_str()).collect();
+            format!("estilo '{preset}' não existe em {module} (há: {})", ids.join(", "))
+        })?;
+        if p.module.is_none() {
+            if let Some(opts) = self.options.get_mut(module) {
+                for k in m.presets.iter().flat_map(|q| q.options.keys()) {
+                    opts.remove(k);
+                }
+                if opts.is_empty() {
+                    self.options.remove(module);
+                }
+            }
+        }
+        for (k, v) in &p.options {
+            self.set_option(module, k, v);
+        }
+        let target = p.module.clone().unwrap_or_else(|| module.to_string());
+        self.enable(&target);
+        for other in manifests {
+            if other.id == target {
+                for c in &other.conflicts {
+                    self.disable(c);
+                }
+            } else if other.conflicts.iter().any(|c| c == &target) {
+                self.disable(&other.id);
+            }
+        }
+        Ok(target)
+    }
 }
 
 #[cfg(test)]

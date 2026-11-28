@@ -323,6 +323,12 @@ fn start_sync(app: AppHandle, state: State<AppState>, only: Option<String>, repa
     Ok(())
 }
 
+/// Aplica um estilo pronto (Bruto, Competição, Full...). Devolve o módulo a sincronizar.
+#[tauri::command]
+fn apply_preset(state: State<AppState>, module: String, preset: String) -> Res<String> {
+    services(&state)?.apply_preset(&module, &preset)
+}
+
 /// Desinstala módulos (vazio = tudo que o hiraku tocou).
 #[tauri::command]
 fn uninstall(state: State<AppState>, ids: Vec<String>) -> Res<Vec<hiraku_core::uninstall::UninstallReport>> {
@@ -466,6 +472,7 @@ fn main() -> ExitCode {
             sudo_remember,
             health,
             uninstall,
+            apply_preset,
             uninstall_app,
             quit,
             start_sync,

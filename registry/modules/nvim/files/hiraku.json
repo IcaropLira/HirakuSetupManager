@@ -1,5 +1,6 @@
 {
   "_aviso": "Gerado pelo Hiraku Setup Manager. Mude pelo app ou com: hiraku set nvim chave=valor",
+  "perfil": {{ perfil | json }},
   "colorscheme": {{ colorscheme | json }},
   "transparent": {{ transparent }},
   "number": {{ number }},
