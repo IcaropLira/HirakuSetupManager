@@ -516,6 +516,49 @@ function discoverHTML(m, dopts, dmods) {
     ${tools ? `<div class="dc-sub">Programas</div><div class="dc-grid">${tools}</div>` : ""}`;
 }
 
+// ------------------------------------------------------------------ Estilos (presets)
+// Um estilo é um pacote de opções (e às vezes outro módulo, como o Vim clássico).
+// Fica "ativo" quando tudo que ele define bate com o que está gravado.
+const STYLE = "Estilo";
+function presetState(m, p) {
+  if (p.module) return enabled(p.module) ? "on" : "";
+  if (!enabled(m.id)) return "";
+  // aplicar um estilo zera antes tudo que os outros mexem (igual ao backend)
+  const keys = new Set((m.presets || []).flatMap(q => Object.keys(q.options || {})));
+  return [...keys].every(k => {
+    const spec = m.options.find(o => o.key === k);
+    return spec && optValue(spec, SNAP.settings) === (k in (p.options || {}) ? p.options[k] : spec.default);
+  }) ? "on" : "";
+}
+function presetsHTML(m) {
+  const ps = m.presets || [];
+  if (!ps.length) return "";
+  const states = ps.map(p => presetState(m, p));
+  // vários podem bater ao mesmo tempo (ex.: Full e Apresentação diferem em poucas
+  // opções); o mais específico (mais opções definidas) leva o selo.
+  let best = -1;
+  states.forEach((st, i) => { if (st && (best < 0 || Object.keys(ps[i].options || {}).length > Object.keys(ps[best].options || {}).length)) best = i; });
+  const cards = ps.map((p, i) => `<button class="ps-card ${i === best ? "on" : ""}" data-preset="${esc(p.id)}" aria-pressed="${i === best}">
+      <div class="ps-top"><b>${esc(p.name)}</b>${i === best ? `<span class="tag ok">ativo</span>` : p.tag ? `<span class="tag">${esc(p.tag)}</span>` : ""}</div>
+      <p>${esc(p.description)}</p>
+      ${p.includes && p.includes.length ? `<ul>${p.includes.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    </button>`).join("");
+  const note = best < 0 ? `<span class="tag warn">personalizado</span>` : "";
+  return `<section class="ps glass" aria-label="Estilos de ${esc(m.name)}">
+    <div class="ps-head"><div><h3>Estilos ${note}</h3><p class="mut">Troque de perfil com um clique — os plugins continuam instalados, então voltar é instantâneo. Vale ao reabrir o ${esc(m.name)}.</p></div></div>
+    <div class="ps-grid">${cards}</div></section>`;
+}
+async function applyPreset(modId, presetId) {
+  const m = modInfo(modId), p = (m.presets || []).find(x => x.id === presetId);
+  let target;
+  try { target = await call("apply_preset", { module: modId, preset: presetId }); }
+  catch (e) { return fail(e); }
+  await reload();
+  toast(`Estilo “${p ? p.name : presetId}” aplicado. Reabra o ${m ? m.name : modId} para ver.`);
+  if (UI.live && row(target)?.installed) runSync(target, { quiet: true });
+  else if (!row(target)?.installed) toast(`${target}: será instalado na próxima sincronização.`);
+}
+
 function viewCustom() {
   const mods = customMods();
   if (!mods.length) return `<div class="hx-wrap one"><div class="hx-panel mut">Nenhum módulo com opções.</div></div>`;
@@ -528,13 +571,15 @@ function viewCustom() {
   const specs = sortedSpecs([m]);
   const dmods = discoverMods(m.id);
   const dopts = specs.filter(s => s.section === DISC);
-  const secs = sectionsOf(specs).filter(x => x !== DISC);
+  const hasPresets = (m.presets || []).length > 0;
+  const secs = sectionsOf(specs).filter(x => x !== DISC && !(hasPresets && x === STYLE));
   if (dmods.length || dopts.length) secs.push(DISC);
   if (!secs.includes(CZ_SEC[m.id])) CZ_SEC[m.id] = secs[0];
   const q = CZ_Q.trim().toLowerCase();
   const shown = q
     ? specs.filter(s => (specLabel(s) + " " + s.key + " " + (s.description || "")).toLowerCase().includes(q))
     : specs.filter(s => (s.section || "") === CZ_SEC[m.id]);
+  const presets = q ? "" : presetsHTML(m);
   const tabs = secs.length > 1 && !q ? `<div class="cz-tabs" role="tablist">${secs.map(sec => {
     const n = specs.filter(s => (s.section || "") === sec && optValue(s, SNAP.settings) !== s.default).length
       + (sec === DISC ? dmods.filter(x => enabled(x.id)).length : 0);
@@ -553,6 +598,7 @@ function viewCustom() {
     <section class="cz-page">
       <header class="cz-head glass">${tile(m, "lg")}<div class="cz-title"><h2>${esc(m.name)}</h2><p class="mut">${esc(m.description)}</p><div class="cz-tags">${live}${off}</div></div>
         <input class="txt cz-search" id="czq" type="search" placeholder="Buscar em ${esc(m.name)}…" value="${esc(CZ_Q)}"></header>
+      ${presets}
       ${tabs}
       <div class="cz-sec glass" id="cz-${m.id}">
         ${hasTerm && (!q && (CZ_SEC[m.id] || "") === secs[0]) ? `<div class="termwrap"><div class="term" data-term="${m.id}"></div></div>` : ""}
@@ -612,13 +658,14 @@ function viewUpdates() {
 function bindView() {
   const v = $("#view");
   v.onclick = async e => {
-    const t = e.target.closest("[data-v],[data-act],[data-goto],[data-czmod],[data-czsec],[data-filter],[data-pin],[data-apply],[data-cf],[data-resolve],[data-every],[data-link],[data-install],[data-uninstall]");
+    const t = e.target.closest("[data-v],[data-act],[data-goto],[data-czmod],[data-czsec],[data-filter],[data-pin],[data-apply],[data-cf],[data-resolve],[data-every],[data-link],[data-install],[data-uninstall],[data-preset]");
     if (!t || !v.contains(t)) return;
     const d = t.dataset;
     if (d.v) return go(d.v);
     if (d.goto) { CZ_MOD = d.goto; CZ_Q = ""; return go("custom"); }
     if (d.czmod) { CZ_MOD = d.czmod; CZ_Q = ""; render(); $("#view").scrollTop = 0; return; }
     if (d.czsec !== undefined) { CZ_SEC[CZ_MOD] = d.czsec; render(); return; }
+    if (d.preset) return applyPreset(CZ_MOD, d.preset);
     if (d.filter) { MOD_FILTER = d.filter; return render(); }
     if (d.pin) return pinDialog(d.pin);
     if (d.apply) return runSync(d.apply);
@@ -1226,6 +1273,17 @@ const MOCK = {
         return Object.fromEntries(Object.entries(this.pal).map(([k, [bg, fg, c]]) => [k, Object.assign({ background: bg, foreground: fg }, ...c.map((x, i) => ({ ["color" + i]: x })))]));
       case "toggle_module": { const on = !s.modules.includes(a.id); s.modules = on ? [...s.modules, a.id] : s.modules.filter(m => m !== a.id); return on; }
       case "save_settings": this.settings = a.settings; this.first = false; return null;
+      case "apply_preset": {
+        const m = this.cat().find(x => x.id === a.module), p = m && (m.presets || []).find(x => x.id === a.preset);
+        if (!p) throw `estilo '${a.preset}' não existe em ${a.module}`;
+        const o = s.options[a.module] = s.options[a.module] || {};
+        if (!p.module) m.presets.forEach(q => Object.keys(q.options || {}).forEach(k => delete o[k]));
+        Object.assign(o, p.options);
+        const target = p.module || a.module, other = target === "vim" ? "vim-classico" : target === "vim-classico" ? "vim" : null;
+        if (!s.modules.includes(target)) s.modules.push(target);
+        if (other) s.modules = s.modules.filter(x => x !== other);
+        return target;
+      }
       case "set_option": { s.options[a.module] = s.options[a.module] || {}; if (a.value === null) delete s.options[a.module][a.key]; else s.options[a.module][a.key] = a.value; return null; }
       case "set_pin": if (a.pin) s.pins[a.module] = a.pin; else delete s.pins[a.module]; return null;
       case "set_mode": s.mode = a.mode || undefined; return null;

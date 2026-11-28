@@ -21,7 +21,15 @@ if vim.fn.has("nvim-0.10") == 0 then
   return
 end
 
+-- Estilo "Bruto" (app → Neovim → Estilos): o Neovim de fábrica, sem nada.
+local ok_h, hiraku = pcall(require, "icaro.hiraku")
+if ok_h and hiraku.level() == 0 then
+  vim.cmd("syntax off")
+  vim.cmd("filetype off")
+  return
+end
+
 require("icaro.paths")
 require("icaro.options")
-require("icaro.lazy")      -- instala/carrega os plugins
+require("icaro.lazy")      -- instala/carrega os plugins (até o nível do estilo)
 require("icaro.core").setup() -- temas, toggles, runner, atalhos, comandos

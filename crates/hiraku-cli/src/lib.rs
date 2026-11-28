@@ -44,6 +44,8 @@ USO:
   hiraku uninstall <módulo>...|--all  desfaz o que o hiraku fez: configs (os arquivos de antes
                                       voltam), plugins e programas baixados; desabilita o módulo
   hiraku set <módulo> chave=valor     define uma opção de módulo (ex.: style=solid)
+  hiraku style <módulo> [<estilo>]    lista os estilos prontos (vim, nvim) ou troca para um
+                                      (ex.: hiraku style nvim competicao; depois hiraku sync)
   hiraku pin <módulo> <versão>        fixa a versão do binário (ex.: 0.10.*); unpin remove
   hiraku mode user|system|auto        define o modo de instalação padrão
   hiraku settings                     mostra as preferências
@@ -92,6 +94,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
         Some("enable") => cmd_enable(&args[1..], true),
         Some("disable") => cmd_enable(&args[1..], false),
         Some("set") => cmd_set(&args[1..]),
+        Some("style") => cmd_style(&args[1..]),
         Some("pin") => cmd_pin(&args[1..], true),
         Some("unpin") => cmd_pin(&args[1..], false),
         Some("mode") => cmd_mode(&args[1..]),
@@ -681,6 +684,42 @@ fn cmd_set(args: &[String]) -> Result<(), String> {
     save_settings(&file, &settings)?;
     println!("{id}: {key} = {value}");
     Ok(())
+}
+
+fn cmd_style(args: &[String]) -> Result<(), String> {
+    let flags = parse_flags(args)?;
+    let known = registry::load_dir(&registry_dir(&flags)?).map_err(|e| e.to_string())?;
+    let (_, file, mut settings) = load_settings()?;
+    match flags.positional.as_slice() {
+        [id] => {
+            let m = known
+                .iter()
+                .find(|m| &m.id == id)
+                .ok_or_else(|| format!("módulo '{id}' não existe no registry"))?;
+            if m.presets.is_empty() {
+                println!("{id} não tem estilos prontos.");
+            }
+            for p in &m.presets {
+                let tag = p.tag.as_deref().map(|t| format!(" ({t})")).unwrap_or_default();
+                println!("{:<15} {}{tag}", p.id, p.name);
+                if !p.description.is_empty() {
+                    println!("{:<15} {}", "", p.description);
+                }
+            }
+            Ok(())
+        }
+        [id, preset] => {
+            let refs: Vec<_> = known.iter().collect();
+            let target = settings.apply_preset(&refs, id, preset)?;
+            save_settings(&file, &settings)?;
+            println!("{id}: estilo '{preset}' aplicado. Rode `hiraku sync` e reabra o editor.");
+            if &target != id {
+                println!("(habilitado: {target})");
+            }
+            Ok(())
+        }
+        _ => Err("uso: hiraku style <módulo> [<estilo>]".to_string()),
+    }
 }
 
 fn cmd_pin(args: &[String], pin: bool) -> Result<(), String> {

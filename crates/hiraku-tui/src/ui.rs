@@ -822,6 +822,7 @@ mod tests {
             ],
             homepage: None,
             discover: Vec::new(),
+            presets: Vec::new(),
         }
     }
 

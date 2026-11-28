@@ -352,6 +352,7 @@ mod tests {
             options,
             homepage: None,
             discover: Vec::new(),
+            presets: Vec::new(),
         }
     }
 

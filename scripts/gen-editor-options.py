@@ -123,6 +123,12 @@ def editor(name):
         opt("keymaps", "keymaps", None, "Meus atalhos", T,
             "Valem por cima dos atalhos do Ícaro. Para desativar um atalho existente, use <Nop> como ação."),
     ]
+    # Estilo (perfil): até onde a configuração vai. Os presets abaixo escolhem um.
+    O.insert(0, opt("perfil", "choice", "completo", "Nível de recursos", "Estilo",
+        "Até onde a configuração vai: do editor de fábrica ao completo. Os estilos prontos (no topo) escolhem isto por você. Vale ao reabrir o editor.",
+        values=["bruto", "dalton", "competicao", "competicao_ac", "completo"],
+        labels={"bruto": "Bruto (de fábrica)", "dalton": "Dalton (sintaxe)", "competicao": "Competição",
+                "competicao_ac": "Competição + AC", "completo": "Full (tudo)"}))
     # Teclas de função: cada ação do Ícaro com a tecla que a dispara (F1, Shift+F1...).
     FK = "Teclas de função"
     first = True
@@ -225,6 +231,70 @@ def toml_value(v):
         return str(v)
     return q(v)
 
+def presets(name):
+    """Estilos prontos do Vim/Neovim, do mais cru ao mais completo."""
+    nvim = name == "nvim"
+    ed = "Neovim" if nvim else "Vim"
+    ac = {"autocomplete_cpp": "true", "autocomplete_java": "true", "autocomplete_python": "true"}
+    if nvim:
+        ac["autocomplete_outros"] = "true"
+    quiet_lsp = {"hints": "false", "lsp_progress": "false"} if nvim else {}
+    P = [
+        dict(id="bruto", name="Bruto", tag="de fábrica",
+             description=f"O {ed} sem nada: sem tema, sem destaque de sintaxe, sem atalhos nem plugins. Para treinar do jeito que vem na máquina da prova.",
+             includes=[f"{ed} puro, como vem instalado", "Nenhum plugin, abre na hora", "Suas configurações continuam guardadas para voltar"],
+             options={"perfil": "bruto"}),
+        dict(id="dalton", name="Dalton", tag="só destaque de sintaxe",
+             description="Cores no código e nada mais: tema, destaque de sintaxe, número das linhas e as opções básicas do app.",
+             includes=["Destaque de sintaxe e tema"] + (["Treesitter (sintaxe mais precisa)"] if nvim else []) + ["Número das linhas, busca e indentação do app", "Sem atalhos de compilar, sem autocomplete"],
+             options={"perfil": "dalton", "relativenumber": "false", "header": "false"}),
+        dict(id="competicao", name="Competição", tag="maratona e contest",
+             description="O kit de maratona: template pronto ao criar o arquivo e F5–F8 para compilar, executar e testar com o input.txt. Sem autocomplete, como na prova.",
+             includes=["Template ao criar .cpp, .java e .py", "F5 compila · F6 executa · F7 compila e executa · F8 testa com input.txt",
+                       "Fecha-pares e folha de atalhos (F12)", "Sem autocomplete, sem árvore de arquivos"],
+             options={"perfil": "competicao", "relativenumber": "false", "header": "false", "autopairs": "true", "inlay": "false", "matchparen": "true"}),
+        dict(id="competicao-ac", name="Competição + AC", tag="contest com autocomplete",
+             description="O kit de maratona com autocomplete: sugestões enquanto digita em C++, Java e Python, sem o resto da interface.",
+             includes=["Tudo da Competição", "Autocomplete em C++, Java e Python" + (" (LSP)" if nvim else " (coc)"),
+                       "Sem dicas inline, sem árvore de arquivos nem barra de status enfeitada"],
+             options={"perfil": "competicao_ac", "relativenumber": "false", "header": "false", "autopairs": "true", "inlay": "false", "matchparen": "true", **ac, **quiet_lsp}),
+    ]
+    if not nvim:
+        P.append(dict(id="old-school", name="Old School", tag="o Vim antes do Neovim",
+             description="O Vim do Ícaro como era antes de existir o Neovim e o app, instalado pelo install.sh original da época. Escolha a data na linha do tempo do Vim clássico.",
+             includes=["v2.0 de 07/10/2026 (o último antes do Neovim)", "Ou qualquer versão desde 09/09/2026", "Substitui o Vim moderno enquanto estiver ativo"],
+             module="vim-classico", options={}))
+    P += [
+        dict(id="apresentacao", name="Apresentação", tag="mostrar código",
+             description="Tudo ligado, mas com a tela limpa para mostrar código numa aula ou call: números absolutos, sem texto fantasma nem avisos piscando.",
+             includes=["Tudo do Full", "Números absolutos (fácil falar \"linha 12\")", "Sem dicas inline" + (", sem avisos do LSP na tela" if nvim else "")],
+             options={"perfil": "completo", "relativenumber": "false", "header": "true", "inlay": "false", "autopairs": "true", "matchparen": "true", **ac,
+                      **({"diagnostics": "false", "hints": "false", "lsp_progress": "false"} if nvim else {})}),
+        dict(id="full", name="Full", tag="tudo",
+             description=f"O {ed} completo do Ícaro: todos os plugins, autocomplete, dicas, árvore de arquivos, barra de status e header.",
+             includes=(["lazy.nvim com todos os plugins, LSP e autocomplete (blink)", "neo-tree, telescope, lualine, bufferline, gitsigns...", "Dicas inline, avisos do LSP e header"] if nvim
+                       else ["coc com autocomplete, airline, NERDTree, fugitive", "Dicas inline e header", "Extras do Descobrir que você ligar"]),
+             options={"perfil": "completo", "relativenumber": "true", "header": "true", "inlay": "true", "autopairs": "true", "matchparen": "true", **ac,
+                      **({"diagnostics": "true", "hints": "false", "lsp_progress": "false"} if nvim else {})}),
+    ]
+    return P
+
+def presets_toml(name):
+    out = ["", "# ---------------------------------------------------------------- estilos",
+           "# Gerados por scripts/gen-editor-options.py: um clique no app troca estas opções."]
+    for p in presets(name):
+        out.append("\n[[preset]]")
+        for k in ("id", "name", "tag", "description"):
+            out.append(f"{k} = {q(p[k])}")
+        if p.get("module"):
+            out.append(f"module = {q(p['module'])}")
+        out.append("includes = [" + ", ".join(q(i) for i in p["includes"]) + "]")
+        if p["options"]:
+            out.append("[preset.options]")
+            for k, v in p["options"].items():
+                out.append(f"{k} = {q(v)}")
+    return "\n".join(out) + "\n"
+
 def options_toml(O):
     out = ["", "# ---------------------------------------------------------------- opções",
            "# Geradas por scripts/gen-editor-options.py; o app mostra na ordem abaixo,",
@@ -269,6 +339,6 @@ for name in ("vim", "nvim"):
     p = f"{MOD}/{name}/module.toml"
     s = open(p).read()
     s = s.split(MARK)[0].rstrip("\n") + "\n"
-    open(p, "w").write(s + options_toml(O))
+    open(p, "w").write(s + options_toml(O) + presets_toml(name))
     open(f"{MOD}/{name}/files/hiraku.json", "w").write(json_template(O, name))
     print(name, len(O), "opções")

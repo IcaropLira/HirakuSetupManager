@@ -13,12 +13,14 @@ function M.setup()
   themes.setup()
   toggles.setup()
   settings.setup()
-  runner.setup_templates()
+  local level = require("icaro.hiraku").level()
+  -- Dalton: só sintaxe, tema e opções. Competição em diante: templates e teclas.
+  if level >= 2 then runner.setup_templates() end
 
   -- ---------- teclas de função (configuráveis no app) e os comandos :Th :Pv ... ----------
   local actions = require("icaro.actions")
   actions.commands()
-  actions.apply()
+  if level >= 2 then actions.apply() end
   vim.api.nvim_create_user_command("LspProgress", function() toggles.lsp_progress() end, {})
   vim.api.nvim_create_user_command("ThemeList", themes.pick, {})
 

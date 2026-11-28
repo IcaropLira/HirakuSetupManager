@@ -75,6 +75,9 @@ endfunction
 
 " Carrega o que está ligado e já foi baixado; baixa o que falta.
 function! HirakuApplyDiscover() abort
+    if HirakuLevel() < 4
+        return
+    endif
     for l:key in keys(s:extras)
         if !s:Enabled(l:key)
             continue

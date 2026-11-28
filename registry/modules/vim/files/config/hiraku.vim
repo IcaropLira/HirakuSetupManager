@@ -42,7 +42,26 @@ function! HirakuGet(key, default) abort
 endfunction
 
 " Plugin ligado? (sem hiraku.json, todos ligados)
+" ---------------------------------------------------------------- estilo
+" O estilo escolhido no app (perfil) decide até onde a configuração vai:
+"   bruto         o Vim de fábrica, sem nada
+"   dalton        + destaque de sintaxe, tema e opções
+"   competicao    + templates, F5–F8 (compilar/executar/testar), atalhos, folha
+"   competicao_ac + autocomplete (coc)
+"   completo      + airline, NERDTree, fugitive, extras do Descobrir
+let s:levels = ['bruto', 'dalton', 'competicao', 'competicao_ac', 'completo']
+function! HirakuLevel() abort
+    let l:i = index(s:levels, HirakuGet('perfil', 'completo'))
+    return l:i < 0 ? 4 : l:i
+endfunction
+
+" nível mínimo de cada plugin
+let s:plugin_level = {'airline': 4, 'nerdtree': 4, 'fugitive': 4, 'coc': 3}
+
 function! HirakuPlugin(name) abort
+    if HirakuLevel() < get(s:plugin_level, a:name, 4)
+        return 0
+    endif
     return HirakuGet('plugin_' . a:name, v:true) ? 1 : 0
 endfunction
 

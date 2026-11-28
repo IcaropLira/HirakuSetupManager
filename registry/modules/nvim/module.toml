@@ -75,6 +75,20 @@ optional = true
 # Geradas por scripts/gen-editor-options.py; o app mostra na ordem abaixo,
 # agrupadas por seção. Vão para files/hiraku.json, que o editor lê e reaplica ao vivo.
 
+[options.perfil]
+type = "choice"
+default = "completo"
+values = ["bruto", "dalton", "competicao", "competicao_ac", "completo"]
+label = "Nível de recursos"
+section = "Estilo"
+description = "Até onde a configuração vai: do editor de fábrica ao completo. Os estilos prontos (no topo) escolhem isto por você. Vale ao reabrir o editor."
+[options.perfil.labels]
+"bruto" = "Bruto (de fábrica)"
+"dalton" = "Dalton (sintaxe)"
+"competicao" = "Competição"
+"competicao_ac" = "Competição + AC"
+"completo" = "Full (tudo)"
+
 [options.colorscheme]
 type = "choice"
 default = "auto"
@@ -843,3 +857,102 @@ default = ""
 label = "Configuração extra"
 section = "Avançado"
 description = "Código Lua executado por último, a cada vez que as opções são aplicadas. Para o que não tem botão aqui."
+
+# ---------------------------------------------------------------- estilos
+# Gerados por scripts/gen-editor-options.py: um clique no app troca estas opções.
+
+[[preset]]
+id = "bruto"
+name = "Bruto"
+tag = "de fábrica"
+description = "O Neovim sem nada: sem tema, sem destaque de sintaxe, sem atalhos nem plugins. Para treinar do jeito que vem na máquina da prova."
+includes = ["Neovim puro, como vem instalado", "Nenhum plugin, abre na hora", "Suas configurações continuam guardadas para voltar"]
+[preset.options]
+perfil = "bruto"
+
+[[preset]]
+id = "dalton"
+name = "Dalton"
+tag = "só destaque de sintaxe"
+description = "Cores no código e nada mais: tema, destaque de sintaxe, número das linhas e as opções básicas do app."
+includes = ["Destaque de sintaxe e tema", "Treesitter (sintaxe mais precisa)", "Número das linhas, busca e indentação do app", "Sem atalhos de compilar, sem autocomplete"]
+[preset.options]
+perfil = "dalton"
+relativenumber = "false"
+header = "false"
+
+[[preset]]
+id = "competicao"
+name = "Competição"
+tag = "maratona e contest"
+description = "O kit de maratona: template pronto ao criar o arquivo e F5–F8 para compilar, executar e testar com o input.txt. Sem autocomplete, como na prova."
+includes = ["Template ao criar .cpp, .java e .py", "F5 compila · F6 executa · F7 compila e executa · F8 testa com input.txt", "Fecha-pares e folha de atalhos (F12)", "Sem autocomplete, sem árvore de arquivos"]
+[preset.options]
+perfil = "competicao"
+relativenumber = "false"
+header = "false"
+autopairs = "true"
+inlay = "false"
+matchparen = "true"
+
+[[preset]]
+id = "competicao-ac"
+name = "Competição + AC"
+tag = "contest com autocomplete"
+description = "O kit de maratona com autocomplete: sugestões enquanto digita em C++, Java e Python, sem o resto da interface."
+includes = ["Tudo da Competição", "Autocomplete em C++, Java e Python (LSP)", "Sem dicas inline, sem árvore de arquivos nem barra de status enfeitada"]
+[preset.options]
+perfil = "competicao_ac"
+relativenumber = "false"
+header = "false"
+autopairs = "true"
+inlay = "false"
+matchparen = "true"
+autocomplete_cpp = "true"
+autocomplete_java = "true"
+autocomplete_python = "true"
+autocomplete_outros = "true"
+hints = "false"
+lsp_progress = "false"
+
+[[preset]]
+id = "apresentacao"
+name = "Apresentação"
+tag = "mostrar código"
+description = "Tudo ligado, mas com a tela limpa para mostrar código numa aula ou call: números absolutos, sem texto fantasma nem avisos piscando."
+includes = ["Tudo do Full", "Números absolutos (fácil falar \"linha 12\")", "Sem dicas inline, sem avisos do LSP na tela"]
+[preset.options]
+perfil = "completo"
+relativenumber = "false"
+header = "true"
+inlay = "false"
+autopairs = "true"
+matchparen = "true"
+autocomplete_cpp = "true"
+autocomplete_java = "true"
+autocomplete_python = "true"
+autocomplete_outros = "true"
+diagnostics = "false"
+hints = "false"
+lsp_progress = "false"
+
+[[preset]]
+id = "full"
+name = "Full"
+tag = "tudo"
+description = "O Neovim completo do Ícaro: todos os plugins, autocomplete, dicas, árvore de arquivos, barra de status e header."
+includes = ["lazy.nvim com todos os plugins, LSP e autocomplete (blink)", "neo-tree, telescope, lualine, bufferline, gitsigns...", "Dicas inline, avisos do LSP e header"]
+[preset.options]
+perfil = "completo"
+relativenumber = "true"
+header = "true"
+inlay = "true"
+autopairs = "true"
+matchparen = "true"
+autocomplete_cpp = "true"
+autocomplete_java = "true"
+autocomplete_python = "true"
+autocomplete_outros = "true"
+diagnostics = "true"
+hints = "false"
+lsp_progress = "false"

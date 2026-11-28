@@ -45,6 +45,30 @@ pub struct Manifest {
     /// deles estiver habilitado.
     #[serde(default)]
     pub conflicts: Vec<String>,
+    /// Estilos prontos ("Competição", "Full"...): um clique troca um conjunto de opções.
+    #[serde(default, rename = "preset")]
+    pub presets: Vec<Preset>,
+}
+
+/// Um estilo pronto de configuração do módulo.
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub struct Preset {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    /// Frase curta no card (ex.: "para maratona").
+    #[serde(default)]
+    pub tag: Option<String>,
+    /// O que vem nele, em itens curtos.
+    #[serde(default)]
+    pub includes: Vec<String>,
+    /// Valores das opções (como em `hiraku set`). Opções fora daqui não mudam.
+    #[serde(default)]
+    pub options: BTreeMap<String, String>,
+    /// Usa outro módulo no lugar deste (ex.: o Vim clássico, que conflita com o Vim).
+    #[serde(default)]
+    pub module: Option<String>,
 }
 
 /// Uma opção configurável do módulo: o tipo (`kind`) e os metadados comuns que a
@@ -456,6 +480,22 @@ impl Manifest {
         for (at, link) in links {
             if !link.starts_with("https://") || link.contains(char::is_whitespace) {
                 return Err(bad(format!("{at}: o link precisa começar com https:// e não ter espaços")));
+            }
+        }
+        for p in &self.presets {
+            if !is_valid_id(&p.id) || p.name.trim().is_empty() {
+                return Err(bad(format!("preset '{}': id ou nome inválido", p.id)));
+            }
+            if self.presets.iter().filter(|q| q.id == p.id).count() > 1 {
+                return Err(bad(format!("preset '{}' repetido", p.id)));
+            }
+            if let Some(k) = p.options.keys().find(|k| !self.options.contains_key(*k)) {
+                return Err(bad(format!("preset '{}': opção '{k}' não existe", p.id)));
+            }
+            crate::configs::resolve_options(self, &p.options)
+                .map_err(|e| bad(format!("preset '{}': {e}", p.id)))?;
+            if p.module.as_deref().is_some_and(|m| !is_valid_id(m) || m == self.id) {
+                return Err(bad(format!("preset '{}': module inválido", p.id)));
             }
         }
         if let Some(bad_id) = self.conflicts.iter().find(|d| !is_valid_id(d) || *d == &self.id) {
@@ -959,6 +999,54 @@ template = true
     fn rejects_unknown_schema_and_bad_id() {
         assert!(Manifest::from_toml_str(&sample().replace("schema = 1", "schema = 2"), "x").is_err());
         assert!(Manifest::from_toml_str(&sample().replace("id = \"kitty\"", "id = \"Kitty!\""), "x").is_err());
+    }
+
+    const PRESETS: &str = r#"
+schema = 1
+id = "ed"
+name = "Ed"
+description = "editor"
+[options.perfil]
+type = "choice"
+default = "completo"
+values = ["bruto", "completo"]
+[options.tela]
+type = "bool"
+default = true
+[[preset]]
+id = "bruto"
+name = "Bruto"
+includes = ["nada"]
+options = { perfil = "bruto", tela = "false" }
+[[preset]]
+id = "old-school"
+name = "Old School"
+module = "ed-velho"
+"#;
+
+    #[test]
+    fn presets_parse_and_validate() {
+        let m = Manifest::from_toml_str(PRESETS, "x").unwrap();
+        assert_eq!(m.presets.len(), 2);
+        assert_eq!(m.presets[0].options["perfil"], "bruto");
+        assert_eq!(m.presets[1].module.as_deref(), Some("ed-velho"));
+    }
+
+    #[test]
+    fn presets_reject_bad_ids_keys_values_and_self_module() {
+        for (from, to) in [
+            ("id = \"bruto\"", "id = \"old-school\""), // id repetido
+            ("id = \"bruto\"", "id = \"com_sublinhado\""), // id inválido
+            ("tela = \"false\"", "nada = \"false\""),  // opção inexistente
+            ("perfil = \"bruto\"", "perfil = \"talvez\""), // valor fora da lista
+            ("module = \"ed-velho\"", "module = \"ed\""), // aponta para si mesmo
+        ] {
+            let src = PRESETS.replacen(from, to, 1);
+            assert!(
+                Manifest::from_toml_str(&src, "x").is_err(),
+                "deveria rejeitar: {to}"
+            );
+        }
     }
 
     #[test]

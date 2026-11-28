@@ -48,6 +48,13 @@ call HirakuLeader()
 if HirakuHas('nerd_font')
     let g:icaro_use_nerd_font = g:hiraku.nerd_font ? 1 : 0
 endif
+
+" Estilo "Bruto" (app → Vim → Estilos): o Vim de fábrica, sem nada.
+if HirakuLevel() == 0
+    syntax off
+    filetype off
+    finish
+endif
 " Powerline pode ser usado independentemente dos ícones da Nerd Font.
 " O padrão é 1 para manter winbar/statusline com os separadores reais.
 let g:icaro_powerline = get(g:, 'icaro_powerline', 1)
@@ -280,16 +287,22 @@ source ~/.vim/config/themes.vim
 
 " Configuração modular
 source ~/.vim/config/appearance.vim
-source ~/.vim/config/explorer.vim
 source ~/.vim/config/search.vim
-source ~/.vim/config/coc.vim
-source ~/.vim/config/runner.vim
-source ~/.vim/config/cpp.vim
-source ~/.vim/config/java.vim
-source ~/.vim/config/python.vim
-source ~/.vim/config/cheatsheet.vim
-source ~/.vim/config/functionkeys.vim
-source ~/.vim/config/keymaps.vim
+" Competição em diante: templates, compilar/executar, teclas de função, folha.
+if HirakuLevel() >= 2
+    source ~/.vim/config/coc.vim
+    source ~/.vim/config/runner.vim
+    source ~/.vim/config/cpp.vim
+    source ~/.vim/config/java.vim
+    source ~/.vim/config/python.vim
+    source ~/.vim/config/cheatsheet.vim
+    source ~/.vim/config/functionkeys.vim
+    source ~/.vim/config/keymaps.vim
+endif
+" Full: NERDTree e companhia.
+if HirakuLevel() >= 4
+    source ~/.vim/config/explorer.vim
+endif
 
 " Por cima de tudo acima: o que foi escolhido no Hiraku Setup Manager (e a
 " reaplicação automática quando o app grava o hiraku.json).
